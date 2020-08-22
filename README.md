@@ -1,4 +1,20 @@
 # ai-edge-contest-4th
+## 学習/推論データについて
+### seg_train_annotations
+```
+$ imgcat data/seg_train_annotations/train_0000.png
+```
+
+```
+$ cat train_0000.json
+{
+    "attributes": {
+        "route": "Tokyo1",
+        "timeofday": "day"
+    },
+    "frameIndex": 4204
+}
+```
 
 ## 参考リンク
 ### signate
