@@ -19,3 +19,9 @@
   * PythonでPyTorchのようにモデルを定義すると，そのモデルに適したVerilog HDLとIPコアを生成する
   * 理情の[高前田先生](https://sites.google.com/site/shinyaty/home-japanese)が中心となって制作
   * バックエンドは[Veriloggen](https://github.com/PyHDI/veriloggen)
+
+### Semantic Segmentation Methods
+* [Survey](https://www.sciencedirect.com/science/article/pii/S1568494618302813)
+  * Real Timeの部分を見るとよいかも
+* 精度とfpsはこんな感じ
+  * <img src="/pics/fps-acc.png" width="320px">
