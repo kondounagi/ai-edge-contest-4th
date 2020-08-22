@@ -1,0 +1,61 @@
+Timer unit: 1e-06 s
+
+Total time: 0.043259 s
+File: ./lib/models/bisenetv2.py
+Function: forward at line 299
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   299                                               @profile
+   300                                               def forward(self, x):
+   301         1          9.0      9.0      0.0          size = x.size()[2:]
+   302         1      15015.0  15015.0     34.7          feat_d = self.detail(x)
+   303         1      19576.0  19576.0     45.3          feat2, feat3, feat4, feat5_4, feat_s = self.segment(x)
+   304         1       1847.0   1847.0      4.3          feat_head = self.bga(feat_d, feat_s)
+   305                                           
+   306         1        786.0    786.0      1.8          logits = self.head(feat_head, size)
+   307         1        783.0    783.0      1.8          logits_aux2 = self.aux2(feat2, size)
+   308         1        809.0    809.0      1.9          logits_aux3 = self.aux3(feat3, size)
+   309         1       3707.0   3707.0      8.6          logits_aux4 = self.aux4(feat4, size)
+   310         1        726.0    726.0      1.7          logits_aux5_4 = self.aux5_4(feat5_4, size)
+   311         1          1.0      1.0      0.0          return logits, logits_aux2, logits_aux3, logits_aux4, logits_aux5_4
+
+Total time: 0.535722 s
+File: tools/demo.py
+Function: prepare_model at line 34
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    34                                           @profile
+    35                                           def prepare_model(weight_path):
+    36         1      80860.0  80860.0     15.1      net = model_factory[cfg.model_type](19)
+    37         1     416945.0 416945.0     77.8      net.load_state_dict(torch.load(weight_path, map_location='cpu'))
+    38         1       9800.0   9800.0      1.8      net.eval()
+    39         1      28116.0  28116.0      5.2      net.cuda()
+    40         1          1.0      1.0      0.0      return net
+
+Total time: 5.50307 s
+File: tools/demo.py
+Function: prepare_data at line 43
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    43                                           @profile
+    44                                           def prepare_data(img_path):
+    45         1     221925.0 221925.0      4.0      im = cv2.imread(img_path)
+    46         1      92518.0  92518.0      1.7      im = im[:, :, ::-1].transpose(2, 0, 1).astype(np.float32)
+    47         1    5188628.0 5188628.0     94.3      im = torch.from_numpy(im).div_(255).sub_(mean).div_(std).unsqueeze(0).cuda()
+    48         1          4.0      4.0      0.0      return im
+
+Total time: 0.257416 s
+File: tools/demo.py
+Function: inference at line 50
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    50                                           @profile
+    51                                           def inference(net, img):
+    52         1      55292.0  55292.0     21.5      out = net(img)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
+    53         1     129016.0 129016.0     50.1      pred = palette[out]
+    54         1      73108.0  73108.0     28.4      cv2.imwrite('./res.jpg', pred)
+
