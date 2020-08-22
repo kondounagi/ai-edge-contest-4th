@@ -1,12 +1,20 @@
 # ai-edge-contest-4th
-## 学習/推論データについて
-### seg_train_annotations
+## トレーニングデータ
+### 生画像
+```
+$ imgcat data/seg_train_images/train_0000.png
+```
+<img src="/pics/seg_train_images/train_0000.jpg">
+
+### アノテーション
 ```
 $ imgcat data/seg_train_annotations/train_0000.png
 ```
+ <img src="/pics/seg_train_annotations/train_0000.png">
 
+### メタデータ
 ```
-$ cat train_0000.json
+$ cat data/seg_train_annotations/train_0000.json
 {
     "attributes": {
         "route": "Tokyo1",
@@ -41,3 +49,6 @@ $ cat train_0000.json
   * Real Timeの部分を見るとよいかも
 * 精度とfpsはこんな感じ
   * <img src="/pics/fps-acc.png" width="320px">
+* [awesome-semantic-segmentation](https://github.com/mrgloom/awesome-semantic-segmentation)
+  * semantic-segmentationの歴代SOTAがまとめられている
+  * 実装はない
