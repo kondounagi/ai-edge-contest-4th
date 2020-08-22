@@ -1,12 +1,20 @@
 # ai-edge-contest-4th
-## 学習/推論データについて
-### seg_train_annotations
+## トレーニングデータ
+### 生画像
+```
+$ imgcat data/seg_train_images/train_0000.png
+```
+<img src="/pics/seg_train_images/train_0000.jpg">
+
+### アノテーション
 ```
 $ imgcat data/seg_train_annotations/train_0000.png
 ```
+ <img src="/pics/seg_train_annotations/train_0000.png">
 
+### メタデータ
 ```
-$ cat train_0000.json
+$ cat data/seg_train_annotations/train_0000.json
 {
     "attributes": {
         "route": "Tokyo1",
