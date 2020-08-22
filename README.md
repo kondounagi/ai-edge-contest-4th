@@ -49,3 +49,6 @@ $ cat data/seg_train_annotations/train_0000.json
   * Real Timeの部分を見るとよいかも
 * 精度とfpsはこんな感じ
   * <img src="/pics/fps-acc.png" width="320px">
+* [awesome-semantic-segmentation](https://github.com/mrgloom/awesome-semantic-segmentation)
+  * semantic-segmentationの歴代SOTAがまとめられている
+  * 実装はない
