@@ -6,9 +6,13 @@
 * [第1回AIエッジコンテスト(セグメンテーション部門) 入賞者レポート](https://signate.jp/competitions/143/discussions/ai1-3)
 * [第2回AIエッジコンテスト 入賞者レポート](https://signate.jp/competitions/191/summary)
   * 実際にFPGA上に実装した際のスコアまで評価対象としているのは，これまで第1~3回のうち第2回のみなので，第2回のレポートが実装のためには一番参考になりそう
+* [第4回AIエッジコンテスト 実装チュートリアル](https://signate.jp/competitions/285#Tutorial)
+  * とりあえずこれを参考に実装してみるのがよさそう
 
 ### Ultra96V2  
 * [Ultra96V2向けVitis AI(2019.2)の組み立て方。](https://qiita.com/basaro_k/items/e71a7fcb1125cf8df7d2)
+* [Ultra96 V2 に PYNQ の環境を構築して Jupyter Notebook へログインする](https://qiita.com/osamasao/items/cf0da1e53e633d4d8348)
+* [PYNQ DLページ](http://www.pynq.io/board.html)
 
 ### 高位合成
 * [NNgen](https://github.com/NNgen/nngen)
