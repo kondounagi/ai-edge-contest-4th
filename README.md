@@ -52,3 +52,5 @@ $ cat data/seg_train_annotations/train_0000.json
 * [awesome-semantic-segmentation](https://github.com/mrgloom/awesome-semantic-segmentation)
   * semantic-segmentationの歴代SOTAがまとめられている
   * 実装はない
+* [Real-Time Semantic Segmentation | paper with code](https://paperswithcode.com/sota/real-time-semantic-segmentation-on-cityscapes)
+  * Fastersegとかも良さそう
