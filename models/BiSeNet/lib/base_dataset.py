@@ -34,6 +34,8 @@ class BaseDataset(Dataset):
             imgpth, lbpth = pair.split(',')
             self.img_paths.append(osp.join(dataroot, imgpth))
             self.lb_paths.append(osp.join(dataroot, lbpth))
+        #print(self.img_paths)
+        #print(self.lb_paths)
 
         assert len(self.img_paths) == len(self.lb_paths)
         self.len = len(self.img_paths)
