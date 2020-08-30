@@ -64,6 +64,7 @@ def set_model():
     if not args.finetune_from is None:
         net.load_state_dict(torch.load(args.finetune_from, map_location='cpu'))
     if cfg.use_sync_bn: net = set_syncbn(net)
+    
     net.cuda()
     net.train()
     criteria_pre = OhemCELoss(0.7)
@@ -141,13 +142,17 @@ def save_model(states, save_pth):
 def train():
     logger = logging.getLogger()
     is_dist = dist.is_initialized()
-
+    #is_dist = False 
+    print(is_dist)
     ## dataset
+    print("{},{},{}".format(cfg.im_root,cfg.train_im_anns,cfg.ims_per_gpu))
     dl = get_data_loader(
             cfg.im_root, cfg.train_im_anns,
             cfg.ims_per_gpu, cfg.scales, cfg.cropsize,
             cfg.max_iter, mode='train', distributed=is_dist)
-
+    print("defined DL")
+    #print(list(dl))
+    
     ## model
     net, criteria_pre, criteria_aux = set_model()
 
@@ -160,7 +165,7 @@ def train():
         net, optim = amp.initialize(net, optim, opt_level=opt_level)
 
     ## ddp training
-    net = set_model_dist(net)
+    #net = set_model_dist(net)
 
     ## meters
     time_meter, loss_meter, loss_pre_meter, loss_aux_meters = set_meters()
@@ -169,9 +174,11 @@ def train():
     lr_schdr = WarmupPolyLrScheduler(optim, power=0.9,
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
-
+    
+    print("prepared for train")
     ## train loop
     for it, (im, lb) in enumerate(dl):
+        print("iter: {}".format(it))
         im = im.cuda()
         lb = lb.cuda()
 
@@ -207,8 +214,8 @@ def train():
     ## dump the final model and evaluate the result
     save_pth = osp.join(cfg.respth, 'model_final.pth')
     logger.info('\nsave models to {}'.format(save_pth))
-    state = net.module.state_dict()
-    if dist.get_rank() == 0: torch.save(state, save_pth)
+    #state = net.module.state_dict()
+    #if dist.get_rank() == 0: torch.save(state, save_pth)
 
     logger.info('\nevaluating the final model')
     torch.cuda.empty_cache()
@@ -219,6 +226,7 @@ def train():
 
 
 def main():
+    '''
     torch.cuda.set_device(args.local_rank)
     dist.init_process_group(
         backend='nccl',
@@ -226,6 +234,7 @@ def main():
         world_size=torch.cuda.device_count(),
         rank=args.local_rank
     )
+    '''
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
     train()

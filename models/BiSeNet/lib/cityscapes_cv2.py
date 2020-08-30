@@ -74,7 +74,8 @@ class CityScapes(BaseDataset):
         )
 
 
-def get_data_loader(datapth, annpath, ims_per_gpu, scales, cropsize, max_iter=None, mode='train', distributed=True):
+def get_data_loader(datapth, annpath, ims_per_gpu, scales, cropsize, max_iter=None, mode='train', distributed=False):
+    print("in get_data_loader")
     if mode == 'train':
         trans_func = TransformationTrain(scales, cropsize)
         batchsize = ims_per_gpu
