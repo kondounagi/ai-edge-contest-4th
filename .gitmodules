@@ -1,3 +1,0 @@
-[submodule "models/Fast-SCNN"]
-	path = models/Fast-SCNN
-	url = git@github.com:yoichiro0406/Fast-SCNN.git
