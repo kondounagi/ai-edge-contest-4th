@@ -14,6 +14,9 @@ from utils.loss import MixSoftmaxCrossEntropyLoss, MixSoftmaxCrossEntropyOHEMLos
 from utils.lr_scheduler import LRScheduler
 from utils.metric import SegmentationMetric
 
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
 
 def parse_args():
     """Training Options for Segmentation Experiments"""
@@ -154,6 +157,7 @@ class Trainer(object):
                     print('Epoch: [%2d/%2d] Iter [%4d/%4d] || Time: %4.4f sec || lr: %.8f || Loss: %.4f' % (
                         epoch, args.epochs, i + 1, len(self.train_loader),
                         time.time() - start_time, cur_lr, loss.item()))
+                    writer.add_scalar('loss', loss.item(), cur_iters)
 
             if self.args.no_val:
                 # save every epoch
@@ -162,11 +166,12 @@ class Trainer(object):
                 self.validation(epoch)
 
         save_checkpoint(self.model, self.args, epoch, is_best=False)
-
+        
     def validation(self, epoch):
         is_best = False
         self.metric.reset()
         self.model.eval()
+        mIoU_ave = 0
         for i, (image, target) in enumerate(self.val_loader):
             image = image.to(self.args.device)
 
@@ -177,6 +182,9 @@ class Trainer(object):
             pixAcc, mIoU = self.metric.get()
             print('Epoch %d, Sample %d, validation pixAcc: %.3f%%, mIoU: %.3f%%' % (
                 epoch, i + 1, pixAcc * 100, mIoU * 100))
+            mIoU_ave += mIoU
+        
+        writer.add_scalar('mIoU', mIoU_ave / len(self.val_loader), epoch)
 
         new_pred = (pixAcc + mIoU) / 2
         if new_pred > self.best_pred:
@@ -209,3 +217,5 @@ if __name__ == '__main__':
     else:
         print('Starting Epoch: %d, Total Epochs: %d' % (args.start_epoch, args.epochs))
         trainer.train()
+        writer.flush()
+
