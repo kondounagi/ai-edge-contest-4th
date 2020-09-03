@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class ConvBNReLU(nn.Module):
 
     def __init__(self, in_chan, out_chan, ks=3, stride=1, padding=1,

@@ -12,7 +12,6 @@ import torch.nn.functional as F
 
 __all__ = ['FastSCNN', 'get_fast_scnn']
 
-
 class FastSCNN(nn.Module):
     def __init__(self, num_classes, aux=False, **kwargs):
         super(FastSCNN, self).__init__()
@@ -29,12 +28,12 @@ class FastSCNN(nn.Module):
                 nn.Dropout(0.1),
                 nn.Conv2d(32, num_classes, 1)
             )
-
+            
     def forward(self, x):
         size = x.size()[2:]
         higher_res_features = self.learning_to_downsample(x)
         x = self.global_feature_extractor(higher_res_features)
-        x = self.feature_fusion(higher_res_features, x)
+        x = self.feature_fusion(higher_res_features, x) # これはtemp. だからわかったら消す。highter は91 x 91, lowは23 x 23 あとでx4
         x = self.classifier(x)
         outputs = []
         x = F.interpolate(x, size, mode='bilinear', align_corners=True)
@@ -233,7 +232,7 @@ class Classifer(nn.Module):
         return x
 
 
-def get_fast_scnn(dataset='citys', pretrained=False, root='./weights', map_cpu=False, **kwargs):
+def get_fast_scnn(model_path, dataset='citys', pretrained=False, root='./weights', map_cpu=False, **kwargs):
     acronyms = {
         'pascal_voc': 'voc',
         'pascal_aug': 'voc',
@@ -242,12 +241,12 @@ def get_fast_scnn(dataset='citys', pretrained=False, root='./weights', map_cpu=F
         'citys': 'citys',
     }
     from data_loader import datasets
-    model = FastSCNN(datasets[dataset].NUM_CLASS, **kwargs)
+    model = FastSCNN(20, **kwargs)
     if pretrained:
         if(map_cpu):
-            model.load_state_dict(torch.load(os.path.join(root, 'fast_scnn_%s.pth' % acronyms[dataset]), map_location='cpu'))
+            model.load_state_dict(torch.load(os.path.join(root, model_path), map_location='cpu'))
         else:
-            model.load_state_dict(torch.load(os.path.join(root, 'fast_scnn_%s.pth' % acronyms[dataset])))
+            model.load_state_dict(torch.load(os.path.join(root, model_path)))
     return model
 
 

@@ -5,6 +5,6 @@ datasets = {
 }
 
 
-def get_segmentation_dataset(name, **kwargs):
+def get_segmentation_dataset(name, resize, base_size, crop_size, **kwargs):
     """Segmentation Datasets"""
-    return datasets[name.lower()](**kwargs)
+    return datasets[name.lower()](resize, base_size, crop_size, **kwargs)

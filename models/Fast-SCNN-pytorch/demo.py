@@ -6,6 +6,8 @@ from torchvision import transforms
 from models.fast_scnn import get_fast_scnn
 from PIL import Image
 from utils.visualize import get_color_pallete
+from data_loader import get_segmentation_dataset
+import torch.utils.data as data
 
 parser = argparse.ArgumentParser(
     description='Predict segmentation result from a given image')
@@ -26,7 +28,7 @@ parser.set_defaults(cpu=False)
 
 args = parser.parse_args()
 
-
+@profile
 def demo():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # output folder
@@ -34,21 +36,32 @@ def demo():
         os.makedirs(args.outdir)
 
     # image transform
-    transform = transforms.Compose([
+    input_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
-    image = Image.open(args.input_pic).convert('RGB')
-    image = transform(image).unsqueeze(0).to(device)
+    # dataset and dataloader
+    val_dataset = get_segmentation_dataset(args.dataset, split='val', mode='testval',
+                                            transform=input_transform)
+    val_loader = data.DataLoader(dataset=val_dataset,
+                                        batch_size=1,
+                                        shuffle=False)
+
+
     model = get_fast_scnn(args.dataset, pretrained=True, root=args.weights_folder, map_cpu=args.cpu).to(device)
-    print('Finished loading model!')
-    model.eval()
-    with torch.no_grad():
-        outputs = model(image)
-    pred = torch.argmax(outputs[0], 1).squeeze(0).cpu().data.numpy()
-    mask = get_color_pallete(pred, args.dataset)
-    outname = os.path.splitext(os.path.split(args.input_pic)[-1])[0] + '.png'
-    mask.save(os.path.join(args.outdir, outname))
+
+    for i, (image, label) in enumerate(val_loader):
+        
+        image = image.to(device)
+
+        model.eval()
+        with torch.no_grad():
+        
+            outputs = model(image)
+        pred = torch.argmax(outputs[0], 1).squeeze(0).cpu().data.numpy()
+        mask = get_color_pallete(pred, args.dataset)
+        outname = os.path.splitext(os.path.split(args.input_pic)[-1])[0] + '.png'
+        mask.save(os.path.join(args.outdir, outname))
 
 
 if __name__ == '__main__':

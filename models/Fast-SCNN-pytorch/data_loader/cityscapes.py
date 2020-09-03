@@ -37,11 +37,11 @@ class CitySegmentation(data.Dataset):
     >>>     trainset, 4, shuffle=True,
     >>>     num_workers=4)
     """
-    BASE_DIR = 'cityscapes'
-    NUM_CLASS = 19
+    BASE_DIR = 'signate_datasets'
+    NUM_CLASS = 20
 
-    def __init__(self, root='./datasets/citys', split='train', mode=None, transform=None,
-                 base_size=520, crop_size=480, **kwargs):
+    def __init__(self, resize, base_size, crop_size, root='./signate_datasets', split='train', mode=None, transform=None,
+                **kwargs):
         super(CitySegmentation, self).__init__()
         self.root = root
         self.split = split
@@ -49,34 +49,38 @@ class CitySegmentation(data.Dataset):
         self.transform = transform
         self.base_size = base_size
         self.crop_size = crop_size
-        self.images, self.mask_paths = _get_city_pairs(self.root, self.split)
+        self.resize = resize
+        #self.resize = kwargs['resize']
+        self.images, self.mask_paths = _get_city_pairs(self.root, self.split) # こいつらはただのパスである
         assert (len(self.images) == len(self.mask_paths))
         if len(self.images) == 0:
             raise RuntimeError("Found 0 images in subfolders of: " + self.root + "\n")
-        self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22,
-                              23, 24, 25, 26, 27, 28, 31, 32, 33]
-        self._key = np.array([-1, -1, -1, -1, -1, -1,
-                              -1, -1, 0, 1, -1, -1,
-                              2, 3, 4, -1, -1, -1,
-                              5, -1, 6, 7, 8, 9,
-                              10, 11, 12, 13, 14, 15,
-                              -1, -1, 16, 17, 18])
+        
+        self.valid_classes = [29, 64, 69, 70, 75, 76, 82, 93, 115, 117,
+                              122, 136, 146, 150, 155, 166, 179, 181, 183, 226]
+        self._key = np.ones(228) * -1
+        self._key[(np.asarray(self.valid_classes) + 1).tolist()] = range(20)
+
+
         self._mapping = np.array(range(-1, len(self._key) - 1)).astype('int32')
 
-    def _class_to_index(self, mask):
+    def _class_to_index(self, mask): # ok
         values = np.unique(mask)
         for value in values:
+            #print("value = ", value)
             assert (value in self._mapping)
         index = np.digitize(mask.ravel(), self._mapping, right=True)
         return self._key[index].reshape(mask.shape)
 
-    def __getitem__(self, index):
-        img = Image.open(self.images[index]).convert('RGB')
+    def __getitem__(self, index): # ok
+        img = Image.open(self.images[index]).convert('RGB') # 256諧調
+        img = img.resize((self.resize, self.resize // 2))
         if self.mode == 'test':
             if self.transform is not None:
                 img = self.transform(img)
             return img, os.path.basename(self.images[index])
-        mask = Image.open(self.mask_paths[index])
+        mask = Image.open(self.mask_paths[index]).convert('L') # 普通にパスから画像を開いてる
+        mask = mask.resize((self.resize, self.resize // 2), Image.BILINEAR)
         # synchrosized transform
         if self.mode == 'train':
             img, mask = self._sync_transform(img, mask)
@@ -90,7 +94,7 @@ class CitySegmentation(data.Dataset):
             img = self.transform(img)
         return img, mask
 
-    def _val_sync_transform(self, img, mask):
+    def _val_sync_transform(self, img, mask): # ok
         outsize = self.crop_size
         short_size = outsize
         w, h = img.size
@@ -112,7 +116,7 @@ class CitySegmentation(data.Dataset):
         img, mask = self._img_transform(img), self._mask_transform(mask)
         return img, mask
 
-    def _sync_transform(self, img, mask):
+    def _sync_transform(self, img, mask): # ok
         # random mirror
         if random.random() < 0.5:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -149,27 +153,28 @@ class CitySegmentation(data.Dataset):
         img, mask = self._img_transform(img), self._mask_transform(mask)
         return img, mask
 
-    def _img_transform(self, img):
+    def _img_transform(self, img): # ok
         return np.array(img)
 
-    def _mask_transform(self, mask):
+    def _mask_transform(self, mask): # ok
         target = self._class_to_index(np.array(mask).astype('int32'))
         return torch.LongTensor(np.array(target).astype('int32'))
 
-    def __len__(self):
+    def __len__(self): # ok
         return len(self.images)
 
     @property
-    def num_class(self):
+    def num_class(self): # ok
         """Number of categories."""
         return self.NUM_CLASS
 
     @property
-    def pred_offset(self):
+    def pred_offset(self): # ok
         return 0
 
 
 def _get_city_pairs(folder, split='train'):
+    """
     def get_path_pairs(img_folder, mask_folder):
         img_paths = []
         mask_paths = []
@@ -189,8 +194,8 @@ def _get_city_pairs(folder, split='train'):
         return img_paths, mask_paths
 
     if split in ('train', 'val'):
-        img_folder = os.path.join(folder, 'leftImg8bit/' + split)
-        mask_folder = os.path.join(folder, 'gtFine/' + split)
+        img_folder = os.path.join(folder, 'seg_train_images/')
+        mask_folder = os.path.join(folder, 'seg_train_annotations/')
         img_paths, mask_paths = get_path_pairs(img_folder, mask_folder)
         return img_paths, mask_paths
     else:
@@ -204,6 +209,17 @@ def _get_city_pairs(folder, split='train'):
         val_img_paths, val_mask_paths = get_path_pairs(val_img_folder, val_mask_folder)
         img_paths = train_img_paths + val_img_paths
         mask_paths = train_mask_paths + val_mask_paths
+    """
+    # >>>>>
+    img_paths = os.listdir(os.path.join(folder, 'seg_train_images'))
+    mask_paths = os.listdir(os.path.join(folder, 'seg_train_annotations'))
+    for i, filename in enumerate(img_paths):
+        img_paths[i] = os.path.join(folder + '/seg_train_images', filename)
+    for i, filename in enumerate(mask_paths):
+        mask_paths[i] = os.path.join(folder + '/seg_train_annotations', filename)
+    img_paths.sort()
+    mask_paths.sort()
+    # <<<<<<
     return img_paths, mask_paths
 
 
