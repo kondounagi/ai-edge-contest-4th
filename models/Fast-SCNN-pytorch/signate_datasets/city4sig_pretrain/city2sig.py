@@ -8,7 +8,7 @@ city_img_folder = '../../datasets/citys/leftImg8bit/train'
 city_mask_folder = '../../datasets/citys/gtFine/train'
 
 city2sig_pallette = np.array([0, 70, 0, 0, 0,
-                              0, 0, 64, 179, 0,
+                              0, 0, 64, 179, 64,
                               0, 136, 122, 122, 0,
                               0, 0, 146, 0, 226,
                               155, 181, 75, 115, 76,

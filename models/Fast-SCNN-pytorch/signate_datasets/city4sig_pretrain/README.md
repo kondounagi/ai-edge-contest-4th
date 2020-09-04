@@ -5,7 +5,7 @@
 ## 使い方
 - ディレクトリをこんな感じにしてください
 ```
-datasets-/
+datasets/
          |-citys/
                  |-gtFine/
                  |-leftImg8bit/

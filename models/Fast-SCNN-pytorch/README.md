@@ -68,3 +68,13 @@ Note: The result based on crop_size=768, which is different with paper.
 
 ## References
 - Rudra PK Poudel. et al. "Fast-SCNN: Fast Semantic Segmentation Network".
+
+## train, evaluationのしかた
+- train
+```
+CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.04 --weight-decay 0.0004
+```
+- evaluation
+```
+python eval.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 
+```
