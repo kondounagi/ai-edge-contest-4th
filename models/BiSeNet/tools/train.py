@@ -62,7 +62,7 @@ cfg = cfg_factory[args.model]
 def set_model():
     net = model_factory[cfg.model_type](19)
     if not args.finetune_from is None:
-        net.load_state_dict(torch.load(args.finetune_from, map_location='cpu'))
+        net.load_state_dict(torch.load(args.finetune_from))
     if cfg.use_sync_bn: net = set_syncbn(net)
     net.cuda()
     net.train()
@@ -141,7 +141,12 @@ def save_model(states, save_pth):
 def train():
     logger = logging.getLogger()
     is_dist = dist.is_initialized()
-
+    
+    print("args.local_rank", args.local_rank)
+    print("args.port: ", args.port)
+    print("args.model: ", args.model)
+    print("args.finetune_from: ", args.finetune_from)
+    
     ## dataset
     dl = get_data_loader(
             cfg.im_root, cfg.train_im_anns,
@@ -170,6 +175,8 @@ def train():
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
     print("len(dl)", len(dl))
+    #tmp = dl.__iter__()
+    #print(tmp.next())
     max_iter = len(dl)
     ## train loop
     for it, (im, lb) in enumerate(dl):
