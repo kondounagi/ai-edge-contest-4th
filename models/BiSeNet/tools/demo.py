@@ -5,6 +5,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
+import time
 from PIL import Image
 import numpy as np
 import cv2
@@ -132,4 +133,4 @@ out = net(im)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
 print(out)
 pred = palette[out]
 pred = cv2.cvtColor(pred, cv2.COLOR_RGB2BGR)
-cv2.imwrite('./res.png', pred)
+cv2.imwrite('./res/image/res_{}.png'.format(time.strftime('%Y_%m_%d_%H_%M')), pred)
