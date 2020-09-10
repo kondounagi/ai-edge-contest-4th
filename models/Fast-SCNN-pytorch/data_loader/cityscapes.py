@@ -41,7 +41,7 @@ class CitySegmentation(data.Dataset):
     NUM_CLASS = 20
 
     def __init__(self, resize, base_size, crop_size, img_dir='seg_train_images', mask_dir='seg_train_annotations',
-                root='./signate_datasets', split='train', mode=None, transform=None, **kwargs):
+                root='./signate_datasets', split='train', mode=None, transform=None):
         super(CitySegmentation, self).__init__()
         self.root = root
         self.split = split
@@ -52,7 +52,6 @@ class CitySegmentation(data.Dataset):
         self.resize = resize
         self.img_dir = img_dir
         self.mask_dir = mask_dir
-        #self.resize = kwargs['resize']
         self.images, self.mask_paths = _get_city_pairs(self.root, self.img_dir, self.mask_dir, self.split) # こいつらはただのパスである
         assert (len(self.images) == len(self.mask_paths))
         if len(self.images) == 0:
