@@ -40,8 +40,8 @@ class CitySegmentation(data.Dataset):
     BASE_DIR = 'signate_datasets'
     NUM_CLASS = 20
 
-    def __init__(self, resize, base_size, crop_size, root='./signate_datasets', split='train', mode=None, transform=None,
-                **kwargs):
+    def __init__(self, resize, base_size, crop_size, img_dir='seg_train_images', mask_dir='seg_train_annotations',
+                root='./signate_datasets', split='train', mode=None, transform=None, **kwargs):
         super(CitySegmentation, self).__init__()
         self.root = root
         self.split = split
@@ -50,8 +50,10 @@ class CitySegmentation(data.Dataset):
         self.base_size = base_size
         self.crop_size = crop_size
         self.resize = resize
+        self.img_dir = img_dir
+        self.mask_dir = mask_dir
         #self.resize = kwargs['resize']
-        self.images, self.mask_paths = _get_city_pairs(self.root, self.split) # こいつらはただのパスである
+        self.images, self.mask_paths = _get_city_pairs(self.root, self.img_dir, self.mask_dir, self.split) # こいつらはただのパスである
         assert (len(self.images) == len(self.mask_paths))
         if len(self.images) == 0:
             raise RuntimeError("Found 0 images in subfolders of: " + self.root + "\n")
@@ -74,13 +76,21 @@ class CitySegmentation(data.Dataset):
 
     def __getitem__(self, index): # ok
         img = Image.open(self.images[index]).convert('RGB') # 256諧調
-        img = img.resize((self.resize, self.resize // 2))
+        mask = Image.open(self.mask_paths[index]).convert('L') # 普通にパスから画像を開いてる
+
+        # resizing
+        if img.size == (2048, 1024):
+            img = img.resize((self.resize, self.resize // 2))
+            mask = mask.resize((self.resize, self.resize // 2), Image.BILINEAR)
+        elif img.size == (1936, 1216):
+            img = img.resize((self.resize, self.resize * 5 // 8))
+            mask = mask.resize((self.resize, self.resize *5 // 8), Image.BILINEAR)
+        else :
+            raise ValueError
         if self.mode == 'test':
             if self.transform is not None:
                 img = self.transform(img)
             return img, os.path.basename(self.images[index])
-        mask = Image.open(self.mask_paths[index]).convert('L') # 普通にパスから画像を開いてる
-        mask = mask.resize((self.resize, self.resize // 2), Image.BILINEAR)
         # synchrosized transform
         if self.mode == 'train':
             img, mask = self._sync_transform(img, mask)
@@ -173,53 +183,17 @@ class CitySegmentation(data.Dataset):
         return 0
 
 
-def _get_city_pairs(folder, split='train'):
-    """
-    def get_path_pairs(img_folder, mask_folder):
-        img_paths = []
-        mask_paths = []
-        for root, _, files in os.walk(img_folder):
-            for filename in files:
-                if filename.endswith(".png"):
-                    imgpath = os.path.join(root, filename)
-                    foldername = os.path.basename(os.path.dirname(imgpath))
-                    maskname = filename.replace('leftImg8bit', 'gtFine_labelIds')
-                    maskpath = os.path.join(mask_folder, foldername, maskname)
-                    if os.path.isfile(imgpath) and os.path.isfile(maskpath):
-                        img_paths.append(imgpath)
-                        mask_paths.append(maskpath)
-                    else:
-                        print('cannot find the mask or image:', imgpath, maskpath)
-        print('Found {} images in the folder {}'.format(len(img_paths), img_folder))
-        return img_paths, mask_paths
-
-    if split in ('train', 'val'):
-        img_folder = os.path.join(folder, 'seg_train_images/')
-        mask_folder = os.path.join(folder, 'seg_train_annotations/')
-        img_paths, mask_paths = get_path_pairs(img_folder, mask_folder)
-        return img_paths, mask_paths
-    else:
-        assert split == 'trainval'
-        print('trainval set')
-        train_img_folder = os.path.join(folder, 'leftImg8bit/train')
-        train_mask_folder = os.path.join(folder, 'gtFine/train')
-        val_img_folder = os.path.join(folder, 'leftImg8bit/val')
-        val_mask_folder = os.path.join(folder, 'gtFine/val')
-        train_img_paths, train_mask_paths = get_path_pairs(train_img_folder, train_mask_folder)
-        val_img_paths, val_mask_paths = get_path_pairs(val_img_folder, val_mask_folder)
-        img_paths = train_img_paths + val_img_paths
-        mask_paths = train_mask_paths + val_mask_paths
-    """
-    # >>>>>
-    img_paths = os.listdir(os.path.join(folder, 'seg_train_images'))
-    mask_paths = os.listdir(os.path.join(folder, 'seg_train_annotations'))
+def _get_city_pairs(folder, img_dir, mask_dir, split='train'):
+    
+    img_paths = os.listdir(os.path.join(folder, img_dir))
+    mask_paths = os.listdir(os.path.join(folder, mask_dir))
     for i, filename in enumerate(img_paths):
-        img_paths[i] = os.path.join(folder + '/seg_train_images', filename)
+        img_paths[i] = os.path.join(folder, img_dir, filename)
     for i, filename in enumerate(mask_paths):
-        mask_paths[i] = os.path.join(folder + '/seg_train_annotations', filename)
+        mask_paths[i] = os.path.join(folder, mask_dir, filename)
     img_paths.sort()
     mask_paths.sort()
-    # <<<<<<
+    
     return img_paths, mask_paths
 
 

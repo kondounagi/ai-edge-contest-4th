@@ -68,7 +68,14 @@ def parse_args():
                         help='skip validation during training')
     parser.add_argument('--model_path', type=str,
                         help='use trained model')
-    parser.add_argument('--sub_outdir', type=str)
+    # about dataset for train, val
+    parser.add_argument('--sub_out_dir', type=str,
+                        help='outdir of pred masks')
+    parser.add_argument('--train_img_dir', type=str)
+    parser.add_argument('--train_mask_dir', type=str)
+    parser.add_argument('--test_img_dir', type=str, default='seg_val_images')
+    parser.add_argument('--test_mask_dir', type=str, default='seg_val_annotations')
+
     # the parser
     args = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -88,8 +95,12 @@ class Trainer(object):
         ])
         # dataset and dataloader
         data_kwargs = {'transform': input_transform, 'base_size': args.base_size, 'crop_size': args.crop_size, 'resize': args.resize}
-        train_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, split=args.train_split, mode='train', **data_kwargs)
-        val_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, split='val', mode='val', **data_kwargs)
+        train_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, 
+                                                args.train_img_dir, args.train_mask_dir,
+                                                split=args.train_split, mode='train', **data_kwargs)
+        val_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, 
+                                                args.train_img_dir, args.train_mask_dir,
+                                                split='val', mode='val', **data_kwargs)
         self.train_loader = data.DataLoader(dataset=train_dataset,
                                             batch_size=args.batch_size,
                                             shuffle=True,

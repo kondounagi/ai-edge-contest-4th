@@ -13,13 +13,14 @@ import torch.nn.functional as F
 __all__ = ['FastSCNN', 'get_fast_scnn']
 
 class FastSCNN(nn.Module):
-    def __init__(self, num_classes, aux=False, **kwargs):
+    def __init__(self, num_classes, aux=False, mode='None', **kwargs):
         super(FastSCNN, self).__init__()
         self.aux = aux
         self.learning_to_downsample = LearningToDownsample(32, 48, 64)
         self.global_feature_extractor = GlobalFeatureExtractor(64, [64, 96, 128], 128, 6, [3, 3, 3])
         self.feature_fusion = FeatureFusionModule(64, 128, 128)
         self.classifier = Classifer(128, num_classes)
+        self.mode = mode
         if self.aux:
             self.auxlayer = nn.Sequential(
                 nn.Conv2d(64, 32, 3, padding=1, bias=False),
@@ -30,7 +31,10 @@ class FastSCNN(nn.Module):
             )
             
     def forward(self, x):
-        size = x.size()[2:]
+        if self.mode == 'json':
+            size = [1216, 1936]
+        else:
+            size = x.size()[2:]
         higher_res_features = self.learning_to_downsample(x)
         x = self.global_feature_extractor(higher_res_features)
         x = self.feature_fusion(higher_res_features, x) # これはtemp. だからわかったら消す。highter は91 x 91, lowは23 x 23 あとでx4

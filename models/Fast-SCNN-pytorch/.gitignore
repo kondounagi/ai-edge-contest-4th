@@ -126,3 +126,6 @@ signate_datasets/*.json
 # .lprof for profile
 *.lprof
 
+# json
+*.json
+runs/
