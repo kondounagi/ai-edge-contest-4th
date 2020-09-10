@@ -1,5 +1,5 @@
 # ai-edge-contest-4th
-## トレーニングデータ
+## トレーニングデータ（[詳細](https://github.com/kondounagi/ai-edge-contest-4th/wiki/Dataset%E3%81%AE%E8%A9%B3%E7%B4%B0)）
 ### 生画像
 ```
 $ imgcat data/seg_train_images/train_0000.png
