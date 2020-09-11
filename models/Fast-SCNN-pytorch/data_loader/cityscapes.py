@@ -78,10 +78,10 @@ class CitySegmentation(data.Dataset):
         mask = Image.open(self.mask_paths[index]).convert('L') # 普通にパスから画像を開いてる
 
         # resizing
-        if img.size == (2048, 1024):
+        if img.size[0] / img.size[1] == 2:
             img = img.resize((self.resize, self.resize // 2))
             mask = mask.resize((self.resize, self.resize // 2), Image.BILINEAR)
-        elif img.size == (1936, 1216):
+        elif 1 < img.size[0] / img.size[1] < 2:
             img = img.resize((self.resize, self.resize * 5 // 8))
             mask = mask.resize((self.resize, self.resize *5 // 8), Image.BILINEAR)
         else :

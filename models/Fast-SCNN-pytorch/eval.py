@@ -40,7 +40,7 @@ class Evaluator(object):
 
         self.metric = SegmentationMetric(val_dataset.num_class)
 
-    @profile
+    #@profile
     def eval(self):
         self.model.eval()
         for i, (image, label) in enumerate(tqdm(self.val_loader)):

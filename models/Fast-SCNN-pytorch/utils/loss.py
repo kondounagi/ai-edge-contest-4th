@@ -40,8 +40,8 @@ class SoftmaxCrossEntropyOHEMLoss(nn.Module):
         self.min_kept = int(min_kept)
         if use_weight:
             print("w/ class balance")
-            weight = torch.FloatTensor([20, 20, 1, 1, 1, 20, 1, 1, 1, 1,
-                                        1,   1, 1, 1, 1,  1, 1, 1, 1, 20])
+            weight = torch.FloatTensor([4,     4, 0.2, 0.2, 0.2,   4, 0.2, 0.2, 0.2, 0.2,
+                                        0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 4])
             self.criterion = torch.nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_label)
         else:
             print("w/o class balance")

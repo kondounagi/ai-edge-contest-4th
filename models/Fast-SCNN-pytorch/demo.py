@@ -28,7 +28,6 @@ parser.set_defaults(cpu=False)
 
 args = parser.parse_args()
 
-@profile
 def demo():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # output folder

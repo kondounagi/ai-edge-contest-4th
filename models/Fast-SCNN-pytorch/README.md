@@ -17,11 +17,11 @@ Note: The result based on crop_size=768, which is different with paper.
 ## train, evaluation
 ### pretrain with city4sig
 ```
-CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.04 --weight-decay 0.0004 --train_img_dir city4sig_pretrain/img1024 --train_mask_dir city4sig_pretrain/gt1024 --epoch 100
+CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.04 --weight-decay 0.0004 --train_img_dir city4sig_pretrain/img1024_norm --train_mask_dir city4sig_pretrain/gt1024 --epoch 100
 ```
 ### finetune with signate dataset
 ```
-CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.01 --weight-decay 0.0004 --train_img_dir seg_train_images/1024 --train_mask_dir seg_train_annotations/1024 --use_weight --resume ./weights/fast_scnn_1024_pre_best.pth --stage fine -epoch 60
+CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.01 --weight-decay 0.0004 --train_img_dir seg_train_images/1024 --train_mask_dir seg_train_annotations/1024_norm --use_weight --resume ./weights/fast_scnn_1024_pre_best.pth --stage fine --epoch 60
 ```
 ### evaluation and runtime measurement 
 ```
