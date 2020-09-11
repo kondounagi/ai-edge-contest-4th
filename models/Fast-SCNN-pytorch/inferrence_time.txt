@@ -1,0 +1,23 @@
+Timer unit: 1e-06 s
+
+Total time: 116.518 s
+File: eval.py
+Function: eval at line 41
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    41                                               @profile
+    42                                               def eval(self):
+    43         1       1795.0   1795.0      0.0          self.model.eval()
+    44       602  104242539.0 173160.4     89.5          for i, (image, label) in enumerate(self.val_loader):
+    45       601     756439.0   1258.6      0.6              image = image.to(self.args.device)
+    46                                           
+    47       601    5461416.0   9087.2      4.7              outputs = self.model(image)
+    48                                           
+    49       601      20879.0     34.7      0.0              pred = torch.argmax(outputs[0], 1)
+    50       601     550108.0    915.3      0.5              pred = pred.cpu().data.numpy()
+    51                                                   
+    52       601       5658.0      9.4      0.0              predict = pred.squeeze(0)
+    53       601     389340.0    647.8      0.3              mask = get_color_pallete(predict, self.args.dataset)
+    54       601    5089327.0   8468.1      4.4              mask.save(os.path.join(self.outdir, 'seg_{}.png'.format(str(i).zfill(4))))
+

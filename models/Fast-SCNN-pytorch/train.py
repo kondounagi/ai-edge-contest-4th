@@ -68,7 +68,18 @@ def parse_args():
                         help='skip validation during training')
     parser.add_argument('--model_path', type=str,
                         help='use trained model')
-    parser.add_argument('--sub_outdir', type=str)
+    # about dataset for train, val
+    parser.add_argument('--sub_out_dir', type=str,
+                        help='outdir of pred masks')
+    parser.add_argument('--train_img_dir', type=str)
+    parser.add_argument('--train_mask_dir', type=str)
+    parser.add_argument('--test_img_dir', type=str, default='seg_val_images')
+    parser.add_argument('--test_mask_dir', type=str, default='seg_val_annotations')
+
+    # signate specific ?
+    parser.add_argument('--use_weight', action='store_true', default=False)
+    parser.add_argument('--stage', type=str, default='pre', help='fine or pre')
+
     # the parser
     args = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -81,6 +92,7 @@ def parse_args():
 class Trainer(object):
     def __init__(self, args):
         self.args = args
+        self.stage = args.stage
         # image transform
         input_transform = transforms.Compose([
             transforms.ToTensor(),
@@ -88,8 +100,12 @@ class Trainer(object):
         ])
         # dataset and dataloader
         data_kwargs = {'transform': input_transform, 'base_size': args.base_size, 'crop_size': args.crop_size, 'resize': args.resize}
-        train_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, split=args.train_split, mode='train', **data_kwargs)
-        val_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, split='val', mode='val', **data_kwargs)
+        train_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, 
+                                                args.train_img_dir, args.train_mask_dir,
+                                                split=args.train_split, mode='train', transform=input_transform)
+        val_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, 
+                                                args.train_img_dir, args.train_mask_dir,
+                                                split='val', mode='val', transform=input_transform)
         self.train_loader = data.DataLoader(dataset=train_dataset,
                                             batch_size=args.batch_size,
                                             shuffle=True,
@@ -114,7 +130,7 @@ class Trainer(object):
 
         # create criterion
         self.criterion = MixSoftmaxCrossEntropyOHEMLoss(aux=args.aux, aux_weight=args.aux_weight,
-                                                        ignore_index=-1).to(args.device)
+                                                        use_weight=args.use_weight, ignore_index=-1).to(args.device)
 
         # optimizer
         self.optimizer = torch.optim.SGD(self.model.parameters(),
@@ -130,7 +146,7 @@ class Trainer(object):
         self.metric = SegmentationMetric(train_dataset.num_class)
 
         self.best_pred = 0.0
-
+        
     def train(self):
         cur_iters = 0
         start_time = time.time()
@@ -161,11 +177,11 @@ class Trainer(object):
 
             if self.args.no_val:
                 # save every epoch
-                save_checkpoint(self.model, self.args, is_best=False)
+                save_checkpoint(self.model, self.args, self.stage, is_best=False)
             elif epoch % 20 == 19:
                 self.validation(epoch)
 
-        save_checkpoint(self.model, self.args, epoch, is_best=False)
+        save_checkpoint(self.model, self.args, epoch, self.stage, is_best=False)
         
     def validation(self, epoch):
         is_best = False
@@ -190,20 +206,20 @@ class Trainer(object):
         if new_pred > self.best_pred:
             is_best = True
             self.best_pred = new_pred
-        save_checkpoint(self.model, self.args, epoch, is_best)
+        save_checkpoint(self.model, self.args, epoch, self.stage, is_best)
 
 
-def save_checkpoint(model, args, epoch, is_best=False):
+def save_checkpoint(model, args, epoch, stage, is_best=False):
     """Save Checkpoint"""
     directory = os.path.expanduser(args.save_folder)
     if not os.path.exists(directory):
         os.makedirs(directory)
-    filename = '{}_{}_{}.pth'.format(args.model, args.resize, epoch)
+    filename = '{}_{}_{}_{}.pth'.format(args.model, args.resize, epoch, stage)
     save_path = os.path.join(directory, filename)
     print("saved to ", save_path)
     torch.save(model.state_dict(), save_path)
     if is_best:
-        best_filename = '{}_{}best_model.pth'.format(args.model, args.resize)
+        best_filename = '{}_{}_{}_best.pth'.format(args.model, args.resize, stage)
         best_filename = os.path.join(directory, best_filename)
         torch.save(model.state_dict(), best_filename)
 

@@ -3,49 +3,7 @@ A PyTorch implementation of [Fast-SCNN: Fast Semantic Segmentation Network](http
 
 <p align="center"><img width="100%" src="./png/Fast-SCNN.png" /></p>
 
-## Table of Contents
-- <a href='#installation'>Installation</a>
-- <a href='#datasets'>Datasets</a>
-- <a href='#training-fast-scnn'>Train</a>
-- <a href='#evaluation'>Evaluate</a>
-- <a href='#demo'>Demo</a>
-- <a href='#results'>Results</a>
-- <a href='#todo'>TO DO</a>
-- <a href='#references'>Reference</a>
-
-## Installation
-- Python 3.x. Recommended using [Anaconda3](https://www.anaconda.com/distribution/)
-- [PyTorch 1.0](https://pytorch.org/get-started/locally/). Install PyTorch by selecting your environment on the website and running the appropriate command. Such as:
-  ```
-  conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
-  ```
-- Clone this repository.
-- Download the dataset by following the [instructions](#datasets) below.
-- Note: For training, we currently support [cityscapes](https://www.cityscapes-dataset.com/), and aim to add [VOC](http://host.robots.ox.ac.uk/pascal/VOC/) and [ADE20K](http://groups.csail.mit.edu/vision/datasets/ADE20K/).
-
-## Datasets
-- You can download [cityscapes](https://www.cityscapes-dataset.com/) from [here](https://www.cityscapes-dataset.com/downloads/). Note: please download [leftImg8bit_trainvaltest.zip(11GB)](https://www.cityscapes-dataset.com/file-handling/?packageID=4) and [gtFine_trainvaltest(241MB)](https://www.cityscapes-dataset.com/file-handling/?packageID=1).
-
-## Training-Fast-SCNN
-- By default, we assume you have downloaded the cityscapes dataset in the `./datasets/citys` dir.
-- To train Fast-SCNN using the train script the parameters listed in `train.py` as a flag or manually change them.
-```Shell
-python train.py --model fast_scnn --dataset citys
-```
-
-## Evaluation
-To evaluate a trained network:
-```Shell
-python eval.py
-```
-
-## Demo
-Running a demo:
-```Shell
-python demo.py --model fast_scnn --input-pic './png/berlin_000000_000019_leftImg8bit.png'
-```
-
-## Results
+# Results
 |Method|Dataset|crop_size|mIoU|pixAcc|
 |:-:|:-:|:-:|:-:|:-:|
 |Fast-SCNN(paper)|cityscapes||||
@@ -53,28 +11,35 @@ python demo.py --model fast_scnn --input-pic './png/berlin_000000_000019_leftImg
 
 Note: The result based on crop_size=768, which is different with paper.
 
-<img src="./png/frankfurt_000001_058914_leftImg8bit.png" width="290" /><img src="./png/frankfurt_000001_058914_gtFine_color.png" width="290" /><img src="./png/frankfurt_000001_058914_seg.png" width="290" />
+<img src="./png/train_1642.jpg" width="290" /><img src="./png/train_1642.png" width="290" /><img src="./png/pred.png" width="290" />
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;(a) test image &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;(b) ground truth &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;(c) predicted result
 
-## TODO
-- [ ] add distributed training
-- [ ] Support for the VOC, ADE20K dataset
-- [ ] Support TensorBoard
-- [x] save the best model
-- [x] add Ohem Loss
- 
-## Authors
-* [**Tramac**](https://github.com/Tramac)
+## train, evaluation
+### pretrain with city4sig
+```
+CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.04 --weight-decay 0.0004 --train_img_dir city4sig_pretrain/img1024_norm --train_mask_dir city4sig_pretrain/gt1024 --epoch 100
+```
+### finetune with signate dataset
+```
+CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.01 --weight-decay 0.0004 --train_img_dir seg_train_images/1024 --train_mask_dir seg_train_annotations/1024_norm --use_weight --resume ./weights/fast_scnn_1024_pre_best.pth --stage fine --epoch 60
+```
+### evaluation and runtime measurement 
+```
+CUDA_VISIBLE_DEVICES=0 kernprof -l eval.py --resize 1024 --base-size 512 --crop-size 384 --sub_out_dir 1024 --model_path fast_scnn_1024_fine_best.pth
 
-## References
-- Rudra PK Poudel. et al. "Fast-SCNN: Fast Semantic Segmentation Network".
+python -m line_profiler eval.py.lprof >> inferrence_time.txt
+```
+### IoU measurement
+- make gt json
+```
+python make_submit.py --path_to_annotations ../signate_datasets/seg_val_annotations --output_name gt
+```
+- make pred json
+```
+python make_submit.py --path_to_annotations ../test_result/1024 --output_name 1024
+```
 
-## train, evaluationのしかた
-- train
+- calculate IoU
 ```
-CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.04 --weight-decay 0.0004
-```
-- evaluation
-```
-python eval.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 
+python IOU.py --path_to_ground_truth gt.json --path_to_prediction 1024.json
 ```

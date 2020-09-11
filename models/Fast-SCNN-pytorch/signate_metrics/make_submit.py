@@ -5,12 +5,13 @@ import os
 import json
 import argparse
 from PIL import Image
+from tqdm import tqdm
 
 def make_json(annotations_path, categories):
     count = 0
     P = os.listdir(annotations_path)
     json_data = {}
-    for p in P:
+    for p in tqdm(P):
         if '.png' in p:
             name = p.split('.')[0]+'.jpg'
             json_data[name]={}
@@ -48,11 +49,12 @@ def make_json(annotations_path, categories):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path_to_annotations', type = str, help = 'path to annotations', nargs='?')
+    parser.add_argument('--output_name', type=str, help = 'output json name, .json excluded')
     args = parser.parse_args()
     
     categories = {'car':[0,0,255],'pedestrian':[255,0,0],'lane':[69,47,142],'signal':[255,255,0]}
     
     json_data = make_json(args.path_to_annotations, categories)
-    with open('submit.json', 'w') as f:
+    with open(args.output_name + '.json', 'w') as f:
         json.dump(json_data,f, sort_keys=True,separators=(',', ':'))
     
