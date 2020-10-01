@@ -21,7 +21,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size
 ```
 ### finetune with signate dataset
 ```
-CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.01 --weight-decay 0.0004 --train_img_dir seg_train_images/1024 --train_mask_dir seg_train_annotations/1024_norm --use_weight --resume ./weights/fast_scnn_1024_pre_best.pth --stage fine --epoch 60
+CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size 384 --batch-size 48 --lr 0.01 --weight-decay 0.0004 --train_img_dir seg_train_images/1024_norm --train_mask_dir seg_train_annotations/1024 --use_weight --resume ./weights/fast_scnn_1024_pre_best.pth --stage fine --epoch 60
 ```
 ### evaluation and runtime measurement 
 ```
