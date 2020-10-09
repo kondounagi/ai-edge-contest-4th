@@ -7,6 +7,11 @@ def IOU(true, pred):
     iou_over_all = 0
     num_images = len(true)
     images_intersection = set(true).intersection(set(pred))
+
+    #>>>>>>
+    num_image_category = {'pedestrian': 0, 'lane': 0, 'car': 0, 'signal': 0}
+    iou_sum_category = {'pedestrian': 0, 'lane': 0, 'car': 0, 'signal': 0}
+    #<<<<<<<<<
     for image_intersection in images_intersection:
         iou_per_image = 0
         y_true_categories = true[image_intersection]
@@ -17,10 +22,18 @@ def IOU(true, pred):
         for category in categories_intersection:
             y_pred = y_pred_categories[category]
             y_true = y_true_categories[category]
-            iou_per_category += compute_iou_pix(y_pred, y_true)
+            iou_per_category_per_image = compute_iou_pix(y_pred, y_true)
+            iou_per_category += iou_per_category_per_image
+            num_image_category[category] += 1
+            #print(num_image_category[category])
+            iou_sum_category[category] += iou_per_category_per_image
+            #print("category = ", category, "compute_iou_pix = ", compute_iou_pix(y_pred, y_true))
+        #print("image_intersection = ", image_intersection, "iou_per_category = ", iou_per_category)
         iou_per_image += iou_per_category
         iou_per_image/=num_categories
         iou_over_all += iou_per_image
+    for c, n in num_image_category.items():
+        print(c, " = ", iou_sum_category[c] / n, "/n n = ", n)
     return iou_over_all/num_images
 
 def compute_area(data):

@@ -24,7 +24,7 @@ class Evaluator(object):
         # image transform
         input_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([.485, .456, .406], [.229, .224, .225]),
+            transforms.Normalize([0.3563, 0.3689, 0.3901], [0.2835, 0.2796, 0.2597])
         ])
         # dataset and dataloader
         val_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size,
@@ -53,7 +53,7 @@ class Evaluator(object):
         
             predict = pred.squeeze(0)
             mask = get_color_pallete(predict, self.args.dataset)
-            mask.save(os.path.join(self.outdir, 'train_{}.png'.format(str(1642 + i).zfill(4))))
+            mask.save(os.path.join(self.outdir, 'train_{}.png'.format(str(2192 + i).zfill(4))))
 
 
 if __name__ == '__main__':

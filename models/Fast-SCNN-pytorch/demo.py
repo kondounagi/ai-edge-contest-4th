@@ -37,7 +37,7 @@ def demo():
     # image transform
     input_transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        transforms.Normalize([0.3563, 0.3689, 0.3901], [0.2835, 0.2796, 0.2597])
     ])
     # dataset and dataloader
     val_dataset = get_segmentation_dataset(args.dataset, split='val', mode='testval',

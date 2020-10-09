@@ -14,7 +14,10 @@ from utils.loss import MixSoftmaxCrossEntropyLoss, MixSoftmaxCrossEntropyOHEMLos
 from utils.lr_scheduler import LRScheduler
 from utils.metric import SegmentationMetric
 
+from utils.visualize import get_color_pallete
 from torch.utils.tensorboard import SummaryWriter
+from matplotlib import pyplot as plt
+import numpy as np
 writer = SummaryWriter()
 
 
@@ -88,6 +91,15 @@ def parse_args():
     print(args)
     return args
 
+def _matplotlib_imshow(img, one_channel=False):
+    if one_channel:
+        img = img.mean(dim=0)
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    if one_channel:
+        plt.imshow(npimg, cmap="Greys")
+    else:
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 class Trainer(object):
     def __init__(self, args):
@@ -96,7 +108,7 @@ class Trainer(object):
         # image transform
         input_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([.485, .456, .406], [.229, .224, .225]),
+            transforms.Normalize([0.3563, 0.3689, 0.3901], [0.2835, 0.2796, 0.2597])
         ])
         # dataset and dataloader
         data_kwargs = {'transform': input_transform, 'base_size': args.base_size, 'crop_size': args.crop_size, 'resize': args.resize}
@@ -105,7 +117,7 @@ class Trainer(object):
                                                 split=args.train_split, mode='train', transform=input_transform)
         val_dataset = get_segmentation_dataset(args.dataset, args.resize, args.base_size, args.crop_size, 
                                                 args.train_img_dir, args.train_mask_dir,
-                                                split='val', mode='val', transform=input_transform)
+                                                split='val', mode='testval', transform=input_transform)
         self.train_loader = data.DataLoader(dataset=train_dataset,
                                             batch_size=args.batch_size,
                                             shuffle=True,
@@ -152,7 +164,6 @@ class Trainer(object):
         start_time = time.time()
         for epoch in range(self.args.start_epoch, self.args.epochs):
             self.model.train()
-
             for i, (images, targets) in enumerate(self.train_loader):
 
                 cur_lr = self.lr_scheduler(cur_iters)
@@ -188,12 +199,19 @@ class Trainer(object):
         self.metric.reset()
         self.model.eval()
         mIoU_ave = 0
+        non_transform = transforms.Compose([transforms.ToTensor()])
         for i, (image, target) in enumerate(self.val_loader):
             image = image.to(self.args.device)
 
             outputs = self.model(image)
             pred = torch.argmax(outputs[0], 1)
             pred = pred.cpu().data.numpy()
+            if 0 < i < 10:
+                pred_mask = get_color_pallete(pred.squeeze(0), args.dataset).convert('RGB')
+                pred4show = non_transform(pred_mask)
+                print(np.asarray(pred_mask).shape)
+                _matplotlib_imshow(pred4show)
+                writer.add_image('pred_mask_{}_{}'.format(epoch, i), pred4show)
             self.metric.update(pred, target.numpy())
             pixAcc, mIoU = self.metric.get()
             print('Epoch %d, Sample %d, validation pixAcc: %.3f%%, mIoU: %.3f%%' % (

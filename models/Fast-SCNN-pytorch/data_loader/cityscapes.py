@@ -59,6 +59,7 @@ class CitySegmentation(data.Dataset):
         
         self.valid_classes = [29, 64, 69, 70, 75, 76, 82, 93, 115, 117,
                               122, 136, 146, 150, 155, 166, 179, 181, 183, 226]
+        
         self._key = np.ones(228) * -1
         self._key[(np.asarray(self.valid_classes) + 1).tolist()] = range(20)
 
