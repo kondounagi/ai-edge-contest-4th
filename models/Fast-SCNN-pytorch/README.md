@@ -25,7 +25,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py --resize 1024 --base-size 512 --crop-size
 ```
 ### evaluation and runtime measurement 
 ```
-CUDA_VISIBLE_DEVICES=0 kernprof -l eval.py --resize 1024 --base-size 512 --crop-size 384 --sub_out_dir 1024 --model_path fast_scnn_1024_fine_best.pth
+CUDA_VISIBLE_DEVICES=0 kernprof -l eval.py --resize 1024 --base-size 512 --crop-size 384 --sub_out_dir 1024 --model_path fast_scnn_1024_fine_best.pth --save-folder 
 
 python -m line_profiler eval.py.lprof >> inferrence_time.txt
 ```
