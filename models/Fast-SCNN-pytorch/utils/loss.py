@@ -40,12 +40,13 @@ class SoftmaxCrossEntropyOHEMLoss(nn.Module):
         self.min_kept = int(min_kept)
         if use_weight:
             print("w/ class balance")
-            weight = torch.FloatTensor([ 1.        , 0.16087348, 1.44372177, 0.18968267,23.20220427, 4.50529511,
-                                        34.69070198, 3.94324307, 0.33516517,15.77349235, 0.51137655, 0.09627791,
-                                        1.32679324,14.68241122,13.65735356, 9.19820201, 1.53890244, 0.77586792,
-                                        13.95957224,34.20979844])
-            #weight = torch.FloatTensor([1.0,     1.0, 0.6, 0.6, 0.6,  2.0, 0.6, 0.6, 0.6, 0.6,
+            """
+            weight = torch.FloatTensor([ 1.0 , 1.0, 1.0, 1.0, 1.0, 
+                                        1.7, 1.0, 1.0, 1.0, 1.0, 
+                                        1.0, 1.0, 1.7])"""
+            #weight = torch.FloatTensor([1.0, 1.0, 0.6, 0.6, 0.6,  2.0, 0.6, 0.6, 0.6, 0.6,
             #                            0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 2.0])
+            weight = torch.FloatTensor([1.0, 1.0, 4.0, 4.0, 1.0])
             self.criterion = torch.nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_label)
         else:
             print("w/o class balance")
@@ -89,6 +90,8 @@ class SoftmaxCrossEntropyOHEMLoss(nn.Module):
         valid_flag_new = input_label != self.ignore_label
         # print(np.sum(valid_flag_new))
         target = Variable(torch.from_numpy(input_label.reshape(target.size())).long().cuda())
+        #print('predict = ', torch.unique(predict))
+        #print('target = ', torch.unique(target))
 
         return self.criterion(predict, target)
 

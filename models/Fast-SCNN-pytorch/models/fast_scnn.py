@@ -245,7 +245,7 @@ def get_fast_scnn(model_path, dataset='citys', pretrained=False, root='./weights
         'citys': 'citys',
     }
     from data_loader import datasets
-    model = FastSCNN(20, **kwargs)
+    model = FastSCNN(5, **kwargs)
     if pretrained:
         if(map_cpu):
             model.load_state_dict(torch.load(os.path.join(root, model_path), map_location='cpu'))
