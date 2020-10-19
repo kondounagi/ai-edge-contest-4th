@@ -1,6 +1,9 @@
 # ai-edge-contest-4th
 
 ## [アイデア賞用レポート](https://docs.google.com/presentation/d/1eMQ7aspS-UqENqdJxmf0atEmAJCLnW1w9lUrTRBmPeg/edit?usp=sharing)
+みんなで編集しよう！
+メモを手元に書く代わりにスライドにしておけば，最後のレポート作成がとても便利に！
+
 ## トレーニングデータ（[詳細](https://github.com/kondounagi/ai-edge-contest-4th/wiki/Dataset%E3%81%AE%E8%A9%B3%E7%B4%B0)）
 ### 生画像
 ```
