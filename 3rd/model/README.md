@@ -27,3 +27,9 @@ darknetモデルからcaffeモデルへの変換ツールは以下を用いた
 caffeモデルの量子化とコンパイルは以下を用いた
 
 - https://github.com/Xilinx/Vitis-AI
+
+## メモ
+"darknetモデルからcaffeモデルへの変換ツール"は現在はリンク切れ．
+
+Xilinx/Vitis-AIのレポジトリのTutorialもしくはExamplesから，tensorflowのモデルをコンパイルする例を持ってくると良さそう．
+
