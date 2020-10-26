@@ -42,12 +42,12 @@ using namespace cv;
 // #define IMAGEDIR "/home/root/dataset/image500_640_480/"
 #define ORIG_WIDTH 1936
 #define ORIG_HEIGHT 1216
-#define IMAGE_WIDTH 416
+#define IMAGE_WIDTH 416 // こいつらも変えないと
 #define IMAGE_HEIGHT 416
 #define KERNEL_NAME "tinyyolov3"
 
 #define THREADS 2
-#define BLOCK_SIZE 50
+#define BLOCK_SIZE 50 // ブロックサイズって何よ
 
 const char *yolov3_config = {
     "   name: \"tinyyolov3\" \n"
@@ -79,7 +79,7 @@ string img_dir;
 
 #define SLEEP 1
 int t_cnt = 0;
-void barrier(int tid){
+void barrier(int tid){ // t_cnt へのアクセスが排他的になる。
     {
         std::lock_guard<std::mutex> lock(mtx_);
         t_cnt++;
@@ -88,6 +88,7 @@ void barrier(int tid){
         {
             std::lock_guard<std::mutex> lock(mtx_);
             if(t_cnt % THREADS == 0) break;
+            // barrier が死ぬ時。　それまでまつ。
         }
         usleep(SLEEP);
     }
@@ -102,7 +103,7 @@ void barrier2(int tid){
     cv_.notify_all();
 }*/
 
-inline double etime_sum(timespec ts02, timespec ts01){
+inline double etime_sum(timespec ts02, timespec ts01){ // 桁落ちが起きないか不安だが、時間をsec単位で返す。
     return (ts02.tv_sec+(double)ts02.tv_nsec/(double)1000000000)
             - (ts01.tv_sec+(double)ts01.tv_nsec/(double)1000000000);
 }
@@ -112,7 +113,7 @@ std::vector<string> img_filenames;
 vector<string> ListImages(const char *path) {
     vector<string> images;
     images.clear();
-    struct dirent *entry;
+    struct dirent *entry;   // ディレクトリ内を列挙させるための構造体
 
     /*Check if path is a valid directory path. */
     struct stat s;
@@ -157,7 +158,7 @@ int main_thread(int s_num, int e_num, int tid) {
         std::lock_guard<std::mutex> lock(mtx_);         // Important!
         return xilinx::ai::DpuTask::create(KERNEL_NAME);
     }();
-    task->setMeanScaleBGR({0.0f, 0.0f, 0.0f}, {0.00390625f, 0.00390625f, 0.00390625f});
+    task->setMeanScaleBGR({0.0f, 0.0f, 0.0f}, {0.00390625f, 0.00390625f, 0.00390625f}); // ここも変えなきゃいけない気がする。
 
     auto input_tensor = task->getInputTensor(0);
     CHECK_EQ((int)input_tensor.size(), 1)
