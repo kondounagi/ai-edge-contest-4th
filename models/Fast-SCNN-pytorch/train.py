@@ -158,7 +158,7 @@ class Trainer(object):
         self.metric = SegmentationMetric(train_dataset.num_class)
 
         self.best_pred = 0.0
-        
+    @profile
     def train(self):
         cur_iters = 0
         start_time = time.time()
@@ -191,6 +191,7 @@ class Trainer(object):
                 save_checkpoint(self.model, self.args, self.stage, is_best=False)
             elif epoch % 20 == 19:
                 self.validation(epoch)
+            break
 
         save_checkpoint(self.model, self.args, epoch, self.stage, is_best=False)
         

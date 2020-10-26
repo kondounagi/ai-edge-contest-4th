@@ -59,11 +59,8 @@ class CitySegmentation(data.Dataset):
         
         self.valid_classes = [29, 64, 69, 70, 75, 76, 82, 93, 115, 117,
                               122, 136, 146, 150, 155, 166, 179, 181, 183, 226]
-        """ これは１３クラス向けのやつ
         self.as_same_class = np.array([-1, 0, 1, 2, 3, 4, 5, 3, 4, 8, 9,
-                                        10, 11, 10, 9, 6, 2, 4, 7, 2, 12])"""
-        self.as_same_class = np.array([-1, 0, 1, 4, 4, 4, 2, 4, 4, 4, 4,
-                                4, 4, 4, 4, 4, 4, 4, 4, 4, 3])
+                                        10, 11, 10, 9, 6, 2, 4, 7, 2, 12])
         self._key = np.ones(228, dtype='int') * -1
         self._key[(np.asarray(self.valid_classes) + 1).tolist()] = range(20)
 
@@ -82,7 +79,7 @@ class CitySegmentation(data.Dataset):
         seg_class = self.as_same_class[seg_class + 1]
         #print('seg_class after = ', np.unique(seg_class))
         return seg_class.reshape(mask.shape)
-
+    @profile
     def __getitem__(self, index): # ok
         img = Image.open(self.images[index]).convert('RGB') # 256諧調
         mask = Image.open(self.mask_paths[index]).convert('L') # 普通にパスから画像を開いてる
