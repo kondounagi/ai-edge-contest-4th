@@ -207,6 +207,9 @@ int main_thread(int s_num, int e_num, int tid) {
             }
             // Get output
             const auto output_tensor = task->getOutputTensor(0);
+
+            // NOTE: Xilinx AI LibraryのSemantic Segmentationモデルを探して，
+            // その後処理用関数を呼ぶ形にすれば，実装量をだいぶ減らせる可能性あり
             const auto results = xilinx::ai::yolov3_post_process(
                 input_tensor, output_tensor, dpu_config, ORIG_WIDTH, ORIG_HEIGHT);
 
@@ -221,6 +224,7 @@ int main_thread(int s_num, int e_num, int tid) {
                 if (ymax > ORIG_HEIGHT) ymax = ORIG_HEIGHT;
                 fprintf(fp, "%s %d %d %d %d %d\n", image_file_name[i].c_str(), box.label, (int)xmin, (int)ymin, (int)xmax, (int)ymax);
             }
+            // NOTE: ai-edge-contest-4thでの計測はここまで
             double tmp_time = etime_sum(tt02, tt01);
             sumt += tmp_time;//etime_sum(ts03, ts02);
             //printf("%s | count : %4d %d \t | %8.3lf[ms]\n", image_file_name[i].c_str(), cnt, tid, tmp_time*1000); // For Debug
