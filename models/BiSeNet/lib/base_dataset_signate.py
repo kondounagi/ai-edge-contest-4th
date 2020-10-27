@@ -14,6 +14,7 @@ from PIL import Image
 
 import lib.transform_cv2 as T
 from lib.sampler import RepeatedDistSampler
+from tqdm import tqdm
 """ ごめん、これデバッグがえぐくなりがちなので変えた。
 signate_pallette = [29, 183, 69, 166, 76,
                     117, 150, 226, 155, 115,
@@ -86,12 +87,23 @@ class BaseDataset(Dataset):
 
         assert len(self.img_paths) == len(self.lb_paths)
         self.len = len(self.img_paths)
+        self.imgs = []
+        self.lbs = []
+        self._load_on_memory()
+
+    def _load_on_memory(self):
+        for i in tqdm(range(self.len)):
+            img = cv2.imread(self.img_paths[i])
+            lb = np.asarray(Image.open(self.lb_paths[i]).convert('L'))
+            self.imgs.append(img)
+            self.lbs.append(lb)
 
     def __getitem__(self, idx):
-        img_path, lb_path = self.img_paths[idx], self.lb_paths[idx]
-        #img, label = cv2.imread(impth), cv2.imread(lbpth, 0)
-        img = cv2.imread(img_path) 
-        lb = np.asarray(Image.open(lb_path).convert('L')) # さっきはここまで書いた。
+        #img_path, lb_path = self.img_paths[idx], self.lb_paths[idx]
+        #img = cv2.imread(img_path) 
+        #lb = np.asarray(Image.open(lb_path).convert('L'))
+        img = self.imgs[idx]
+        lb = self.lbs[idx]
         img, lb = self._resize(img, lb)
         """
         if not self.lb_map is None:

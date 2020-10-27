@@ -48,10 +48,14 @@
                         |-lb/
                 |-val/
                         |-img/
-                        .....
+                        |-lb
         |-pretrain/
-                ... finetuneと同じ
-                ...
+                |-train/
+                        |-img/
+                        |-lb/
+                |-val/
+                        |-img/
+                        |-lb
         |-test/
         |-city2sig.py
 ```
@@ -59,13 +63,15 @@
 ```
 python city2sig.py
 ```
-これは、cityscapes のデータをsignate 仕様に変えてくれます。データセットを変えるときは、rootだけ変えば良くなります。mean とstdも自動で変更します。くそ時間かかるので、tmuxとかでやったほうがいいよ。
+これは、cityscapes のデータをsignate 仕様に変えてくれます。データセットを変えるときは、rootだけ変えば良くなります。mean とstdも自動で変更します。マスクのラベルも変更してくれます。くそ時間かかるので、tmuxとかでやったほうがいいよ。
 ## プリトレイン
 ```
 CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/pretrain/train
 ```
 ## ファインチューン
+```
 CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/finetune/train
+```
 
 ## テスト
 
