@@ -15,7 +15,8 @@ import lib.transform_cv2 as T
 from lib.sampler import RepeatedDistSampler
 from lib.base_dataset_signate import BaseDataset, TransformationTrain, TransformationVal
 
-
+#　こいつも冗長だし、evalの時も特にignoreとか生きていないみたいなので、一回削除
+"""
 labels_info = [
     {"hasInstances": False, "category": "void", "catid": 0, "name": "car", "ignoreInEval": True, "id": 0, "color": [0, 0, 255], "trainId": 0},
     {"hasInstances": False, "category": "void", "catid": 0, "name": "bus", "ignoreInEval": True, "id": 1, "color": [193, 214, 0], "trainId": 1},
@@ -38,28 +39,29 @@ labels_info = [
     {"hasInstances": False, "category": "object", "catid": 3, "name": "others", "ignoreInEval": True, "id": 18, "color": [82, 99, 0], "trainId": 18},
     {"hasInstances": False, "category": "object", "catid": 3, "name": "own", "ignoreInEval": False, "id": 19, "color": [86, 62, 67], "trainId": 19},
 ]
-
+"""
 
 
 class Signate(BaseDataset):
     '''
     '''
-    def __init__(self, dataroot, annpath, trans_func=None, mode='train'):
-        super(Signate, self).__init__(
-                dataroot, annpath, trans_func, mode)
-        self.n_cats = 20
-        self.lb_ignore = 255
+    def __init__(self, root, resolution, num_class, trans_func=None, mode='train'):
+        super(Signate, self).__init__(root, resolution, num_class, trans_func, mode)
+        # self.n_cats = 20   # なんかここは変えなきゃな気がする。というかこいつ使われてないんだけど何？
+        self.lb_ignore = -1
+        # なくていい気がするから、一回むし。というか、base_datasetとやってることが被りがちなのでよくない？
+        """
         self.lb_map = np.arange(256).astype(np.uint8)
         for el in labels_info:
-            self.lb_map[el['id']] = el['trainId']
-
+            self.lb_map[el['id']] = el['trainId'] # 今回はel[i] = i
+        """
         self.to_tensor = T.ToTensor(
-            mean=(0.3257, 0.3690, 0.3223), # city, rgb
-            std=(0.2112, 0.2148, 0.2115),
+            mean=(0.3744, 0.3841, 0.4029), # signateに合わせた。cityscape も事前にこれに合わせるのでスイッチはいらない
+            std=(0.2778, 0.2752, 0.2596),
         )
 
 
-def get_data_loader(datapth, annpath, ims_per_gpu, scales, cropsize, max_iter=None, mode='train', distributed=False):
+def get_data_loader(root, resolution, num_class, ims_per_gpu, scales, cropsize, max_iter=None, mode='train', distributed=False):
     print("in get_data_loader")
     if mode == 'train':
         trans_func = TransformationTrain(scales, cropsize)
@@ -72,7 +74,7 @@ def get_data_loader(datapth, annpath, ims_per_gpu, scales, cropsize, max_iter=No
         shuffle = False
         drop_last = False
 
-    ds = Signate(datapth, annpath, trans_func=trans_func, mode=mode)
+    ds = Signate(root, resolution, num_class, trans_func=trans_func, mode=mode)
 
     if distributed:
         assert dist.is_available(), "dist should be initialzed"

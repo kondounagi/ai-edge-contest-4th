@@ -27,6 +27,10 @@ from lib.lr_scheduler import WarmupPolyLrScheduler
 from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
 
+from torch.utils.tensorboard import SummaryWriter
+#writer = SummaryWriter()
+
+
 # apex
 has_apex = True
 try:
@@ -50,25 +54,29 @@ torch.backends.cudnn.deterministic = True
 def parse_args():
     parse = argparse.ArgumentParser()
     parse.add_argument('--local_rank', dest='local_rank', type=int, default=-1,)
-    parse.add_argument('--port', dest='port', type=int, default=44554,)
+    parse.add_argument('--port', dest='port', type=int, default=49333,)
     parse.add_argument('--model', dest='model', type=str, default='bisenetv2',)
-    parse.add_argument('--finetune-from', type=str, default=None,)
+    parse.add_argument('--finetune-from', type=str, default=None,) # 使わないならここは削除したい
+    parse.add_argument('--resolution', type=int, default=1024) # 横幅（長い方）のこと
+    parse.add_argument('--resume', type=str) # fine tune とかの時は、ここから
+    parse.add_argument('--dataset_root', type=str) # fine tune, pre train でデータを簡単に分離できるようにしたい
+    parse.add_argument('--val_root', type=str, default='datasets/finetune/val') # fine tune, pre train でデータを簡単に分離できるようにしたい
+    parse.add_argument('--num_class', type=int, default=13, choices=[5, 13, 20]) # あんまり引数増やさずに全部変えたいなあ
+
     return parse.parse_args()
 
 args = parse_args()
 cfg = cfg_factory[args.model]
 
 
-
 def set_model():
-    net = model_factory[cfg.model_type](19)
+    net = model_factory[cfg.model_type](args.num_class)
     if not args.finetune_from is None:
         net.load_state_dict(torch.load(args.finetune_from))
     if cfg.use_sync_bn: net = set_syncbn(net)
         
     # finetune this layer(n_class=19)
-    # クラス数を変えるのが面倒なので19
-    net.head = SegmentHead(128, 1024, 19)
+    #net.head = SegmentHead(128, 1024, args.num_class)
     
     net.cuda()
     net.train()
@@ -155,8 +163,8 @@ def train():
     
     ## dataset
     dl = get_data_loader(
-            cfg.im_root, cfg.train_im_anns,
-            cfg.ims_per_gpu, cfg.scales, cfg.cropsize,
+            args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
+            cfg.ims_per_gpu, cfg.scales, cfg.cropsize, # ここにcropsizeがあるので忘れなように。
             cfg.max_iter, mode='train', distributed=is_dist)
 
     ## model
@@ -220,11 +228,12 @@ def train():
             print_log_msg(
                 it, cfg.max_iter, lr, time_meter, loss_meter,
                 loss_pre_meter, loss_aux_meters)
-            heads, mious = eval_model(net, 2, cfg.im_root, cfg.val_im_anns)
+            heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class) # クラス数を柔軟に変えたい 
+            #writer.add_scalar('miou', mious, it)
             logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
             ## dump the final model and evaluate the result
-            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
+            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M'))) # ここもっとスッキリさせようぜ
             logger.info('\nsave models to {}'.format(save_pth))
             state = net.module.state_dict()
             if dist.get_rank() == 0: torch.save(state, save_pth)
@@ -237,7 +246,7 @@ def train():
 
     logger.info('\nevaluating the final model')
     torch.cuda.empty_cache()
-    heads, mious = eval_model(net, 2, cfg.im_root, cfg.val_im_anns)
+    heads, mious = eval_model(net, 2, args.dataset_root, args.resolution, args.num_class)
     logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
     return
@@ -245,12 +254,14 @@ def train():
 
 def main():
     torch.cuda.set_device(args.local_rank)
+    print('check1')
     dist.init_process_group(
         backend='nccl',
         init_method='tcp://127.0.0.1:{}'.format(args.port),
         world_size=torch.cuda.device_count(),
         rank=args.local_rank
     )
+    print('check2')
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
     print("finish before train")
