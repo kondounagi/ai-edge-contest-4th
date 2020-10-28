@@ -164,7 +164,7 @@ def train():
     ## dataset
     dl = get_data_loader(
             args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
-            cfg.ims_per_gpu, cfg.scales, cfg.cropsize, # ここにcropsizeがあるので忘れなように。
+            cfg.ims_per_gpu, cfg.scales, [args.resolution//8, args.resolution//4], # ここにcropsizeがあるので忘れなように。
             cfg.max_iter, mode='train', distributed=is_dist)
 
     ## model
