@@ -28,7 +28,7 @@ from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
 
 from torch.utils.tensorboard import SummaryWriter
-#writer = SummaryWriter()
+writer = SummaryWriter()
 
 
 # apex
@@ -207,6 +207,7 @@ def train():
         loss_pre = criteria_pre(logits, lb)
         loss_aux = [crit(lgt, lb) for crit, lgt in zip(criteria_aux, logits_aux)]
         loss = loss_pre + sum(loss_aux)
+        writer.add_scalar('loss', loss.item(), it)
         if has_apex:
             with amp.scale_loss(loss, optim) as scaled_loss:
                 scaled_loss.backward()
@@ -229,7 +230,7 @@ def train():
                 it, cfg.max_iter, lr, time_meter, loss_meter,
                 loss_pre_meter, loss_aux_meters)
             heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class) # クラス数を柔軟に変えたい 
-            #writer.add_scalar('miou', mious, it)
+            writer.add_scalar('miou', mious, it)
             logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
             ## dump the final model and evaluate the result
