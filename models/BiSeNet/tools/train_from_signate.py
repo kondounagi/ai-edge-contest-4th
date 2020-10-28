@@ -27,8 +27,8 @@ from lib.ohem_ce_loss import OhemCELoss
 from lib.lr_scheduler import WarmupPolyLrScheduler
 from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
+from lib.color_palette import get_palette
 
-from demo_signate import make_palette
 from matplotlib import pyplot as plt
 from PIL import Image
 
@@ -209,19 +209,18 @@ def train():
     for it, (im, lb) in enumerate(dl):
         print("itr: ", it, "/", max_iter)
 
-        palette = make_palette(args.num_class)
-        print('palette = ', palette)
+        #print('palette = ', palette)
         #print(im.shape)
         #print(lb.shape)
         #_matplotlib_imshow(im[0])
-        print('lb', lb[0])
-        print('palette[lb]', palette[lb[0]])
-        print('palette[lb].shape', palette[lb[0]].shape)
+        #print('lb', lb[0])
+        #print('palette[lb]', palette[lb[0]])
+        #print('palette[lb].shape', palette[lb[0]].shape)
         non_transform = transforms.Compose([transforms.ToTensor()])
-        _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
+        #_matplotlib_imshow(non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
         #_matplotlib_imshow(non_transform(Image.fromarray(palette(np.uint8([lb[0]][0])))))
         #writer.add_image('im_{}'.format(it), im[0])
-        writer.add_image('lb_{}'.format(it), non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
+        #writer.add_image('lb_{}'.format(it), non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
 
         im = im.cuda()
         lb = lb.cuda()
@@ -251,24 +250,37 @@ def train():
         _ = [mter.update(lss.item()) for mter, lss in zip(loss_aux_meters, loss_aux)]
 
         ## print training log message
-        if (it + 1) % 1000 == 0:
+        if (it + 1) % 1000 == 1:
+            with torch.no_grad():
+                palette = get_palette(args.num_class)
+                dl_eval = get_data_loader(args.val_root, args.resolution, args.num_class, 1, None,
+                        None, mode='val', distributed=is_dist)
+                net.eval()
+                for it_eval, (im, lb) in enumerate(dl_eval):
+                    out = net(im)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
+                    print('out.shape', out.shape)
+                    pred = palette[out]
+                    print('np.unique(pred[0])', np.unique(pred))
+                    _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(pred))))
+                    writer.add_image('lb_{}'.format(it_eval), non_transform(Image.fromarray(np.uint8(pred))))
+
             lr = lr_schdr.get_lr()
             lr = sum(lr) / len(lr)
             print_log_msg(
                 it, cfg.max_iter, lr, time_meter, loss_meter,
                 loss_pre_meter, loss_aux_meters)
             heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class) # クラス数を柔軟に変えたい 
-            writer.add_scalar('miou', mious, it)
+            writer.add_scalar('miou', np.mean(mious), it)
             logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
             ## dump the final model and evaluate the result
-            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M'))) # ここもっとスッキリさせようぜ
+            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(it)) # ここもっとスッキリさせようぜ
             logger.info('\nsave models to {}'.format(save_pth))
             state = net.module.state_dict()
             if dist.get_rank() == 0: torch.save(state, save_pth)
 
     ## dump the final model and evaluate the result
-    save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
+    save_pth = osp.join(cfg.respth, 'model_final.pth')
     logger.info('\nsave models to {}'.format(save_pth))
     state = net.module.state_dict()
     if dist.get_rank() == 0: torch.save(state, save_pth)
@@ -283,7 +295,6 @@ def train():
 
 def main():
     torch.cuda.set_device(args.local_rank)
-    print('check1')
     dist.init_process_group(
         backend='nccl',
         init_method='tcp://127.0.0.1:{}'.format(args.port),
@@ -291,11 +302,11 @@ def main():
         rank=args.local_rank
     )
     print('check2')
+    cfg.respth = './res/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
-    print("finish before train")
     train()
-
+    writer.flush()
 
 if __name__ == "__main__":
     main()
