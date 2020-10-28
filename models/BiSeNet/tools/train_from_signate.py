@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.distributed as dist
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from lib.models import model_factory
 from lib.models.bisenetv2 import SegmentHead
@@ -28,6 +29,8 @@ from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
 from demo_signate import make_palette
 from matplotlib import pyplot as plt
+
+from PIL import Image
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -172,7 +175,13 @@ def train():
     print("args.port: ", args.port)
     print("args.model: ", args.model)
     print("args.finetune_from: ", args.finetune_from)
-    
+    ## dataset
+    dl = get_data_loader(
+            args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
+            cfg.ims_per_gpu, cfg.scales, [args.resolution//8, args.resolution//4], # ここにcropsizeがあるので忘れなように。
+            cfg.max_iter, mode='train', distributed=is_dist)
+
+   
     ## model
     net, criteria_pre, criteria_aux = set_model()
     print('check5')
@@ -188,6 +197,7 @@ def train():
     ## ddp training
     net = set_model_dist(net)
     print(net)
+    net.train()
     ## meters
     time_meter, loss_meter, loss_pre_meter, loss_aux_meters = set_meters()
 
@@ -195,12 +205,6 @@ def train():
     lr_schdr = WarmupPolyLrScheduler(optim, power=0.9,
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
-    ## dataset
-    dl = get_data_loader(
-            args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
-            cfg.ims_per_gpu, cfg.scales, [args.resolution//8, args.resolution//4], # ここにcropsizeがあるので忘れなように。
-            cfg.max_iter, mode='train', distributed=is_dist)
-
 
     print("len(dl)", len(dl))
     tmp = dl.__iter__()
@@ -214,17 +218,26 @@ def train():
         #print(im.shape)
         #print(lb.shape)
         #_matplotlib_imshow(im[0])
-        #_matplotlib_imshow(palette[lb[0]])
+        print('lb', lb[0])
+        print('palette[lb]', palette[lb[0]])
+        print('palette[lb].shape', palette[lb[0]].shape)
+        non_transform = transforms.Compose([transforms.ToTensor()])
+        _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
+        #_matplotlib_imshow(non_transform(Image.fromarray(palette(np.uint8([lb[0]][0])))))
         #writer.add_image('im_{}'.format(it), im[0])
-        #writer.add_image('lb_{}'.format(it), palette[lb[0]])
+        writer.add_image('lb_{}'.format(it), non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
         
         im = im.cuda()
         lb = lb.cuda()
 
+        print('im', im)
+        print('lb', lb)
         lb = torch.squeeze(lb, 1)
 
         optim.zero_grad()
+        print('optim', optim)
         logits, *logits_aux = net(im)
+        print('logits', logits)
         #print(logits.shape)
         #print(len(logits_aux))
         loss_pre = criteria_pre(logits, lb)
