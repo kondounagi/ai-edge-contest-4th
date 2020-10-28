@@ -250,7 +250,7 @@ def train():
         _ = [mter.update(lss.item()) for mter, lss in zip(loss_aux_meters, loss_aux)]
 
         ## print training log message
-        if (it + 1) % 1000 == 1:
+        if (it + 1) % 1000 == 1: # 汚いけどご容赦　1になってるのは動作確認。
             with torch.no_grad():
                 palette = get_palette(args.num_class)
                 dl_eval = get_data_loader(args.val_root, args.resolution, args.num_class, 1, None,
