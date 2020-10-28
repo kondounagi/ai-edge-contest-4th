@@ -89,7 +89,7 @@ class BaseDataset(Dataset):
         self.len = len(self.img_paths)
         self.imgs = []
         self.lbs = []
-        self._load_on_memory()
+        #self._load_on_memory()
 
     def _load_on_memory(self):
         for i in tqdm(range(self.len)):
@@ -100,10 +100,10 @@ class BaseDataset(Dataset):
 
     def __getitem__(self, idx):
         #img_path, lb_path = self.img_paths[idx], self.lb_paths[idx]
-        #img = cv2.imread(img_path) 
-        #lb = np.asarray(Image.open(lb_path).convert('L'))
-        img = self.imgs[idx]
-        lb = self.lbs[idx]
+        img = cv2.imread(self.img_paths[idx]) 
+        lb = np.asarray(Image.open(self.lb_paths[idx]).convert('L'))
+        #img = self.imgs[idx]
+        #lb = self.lbs[idx]
         img, lb = self._resize(img, lb)
         """
         if not self.lb_map is None:

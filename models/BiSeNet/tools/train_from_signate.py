@@ -26,9 +26,11 @@ from lib.ohem_ce_loss import OhemCELoss
 from lib.lr_scheduler import WarmupPolyLrScheduler
 from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
+from demo_signate import make_palette
+from matplotlib import pyplot as plt
 
 from torch.utils.tensorboard import SummaryWriter
-#writer = SummaryWriter()
+writer = SummaryWriter()
 
 
 # apex
@@ -67,6 +69,16 @@ def parse_args():
 
 args = parse_args()
 cfg = cfg_factory[args.model]
+
+def _matplotlib_imshow(img, one_channel=False):
+    if one_channel:
+        img = img.mean(dim=0)
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    if one_channel:
+        plt.imshow(npimg, cmap="Greys")
+    else:
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 
 def set_model():
@@ -161,23 +173,18 @@ def train():
     print("args.model: ", args.model)
     print("args.finetune_from: ", args.finetune_from)
     
-    ## dataset
-    dl = get_data_loader(
-            args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
-            cfg.ims_per_gpu, cfg.scales, cfg.cropsize, # ここにcropsizeがあるので忘れなように。
-            cfg.max_iter, mode='train', distributed=is_dist)
-
     ## model
     net, criteria_pre, criteria_aux = set_model()
-
+    print('check5')
     ## optimizer
     optim = set_optimizer(net)
-
+    print('check3')
     ## fp16
     if has_apex:
         opt_level = 'O1' if cfg.use_fp16 else 'O0'
         net, optim = amp.initialize(net, optim, opt_level=opt_level)
 
+    print('check4')
     ## ddp training
     net = set_model_dist(net)
     print(net)
@@ -188,6 +195,13 @@ def train():
     lr_schdr = WarmupPolyLrScheduler(optim, power=0.9,
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
+    ## dataset
+    dl = get_data_loader(
+            args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
+            cfg.ims_per_gpu, cfg.scales, [args.resolution//8, args.resolution//4], # ここにcropsizeがあるので忘れなように。
+            cfg.max_iter, mode='train', distributed=is_dist)
+
+
     print("len(dl)", len(dl))
     tmp = dl.__iter__()
     #print(tmp.next())
@@ -195,6 +209,15 @@ def train():
     ## train loop
     for it, (im, lb) in enumerate(dl):
         print("itr: ", it, "/", max_iter)
+        palette = make_palette(args.num_class)
+        print('palette = ', palette)
+        #print(im.shape)
+        #print(lb.shape)
+        #_matplotlib_imshow(im[0])
+        #_matplotlib_imshow(palette[lb[0]])
+        #writer.add_image('im_{}'.format(it), im[0])
+        #writer.add_image('lb_{}'.format(it), palette[lb[0]])
+        
         im = im.cuda()
         lb = lb.cuda()
 
@@ -229,7 +252,7 @@ def train():
                 it, cfg.max_iter, lr, time_meter, loss_meter,
                 loss_pre_meter, loss_aux_meters)
             heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class) # クラス数を柔軟に変えたい 
-            #writer.add_scalar('miou', mious, it)
+            writer.add_scalar('miou', mious, it)
             logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
             ## dump the final model and evaluate the result
@@ -237,6 +260,7 @@ def train():
             logger.info('\nsave models to {}'.format(save_pth))
             state = net.module.state_dict()
             if dist.get_rank() == 0: torch.save(state, save_pth)
+
 
     ## dump the final model and evaluate the result
     save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
