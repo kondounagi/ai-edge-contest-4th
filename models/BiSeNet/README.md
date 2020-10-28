@@ -15,6 +15,8 @@
 - pretrainでは、すべての画像に人か信号が入ってるように選択した（city2sig.py)
 - その他クソコードをできるだけ直した。（星の数ほどのmagic numbers）
 - 実験結果を実験ごとにちゃんとまとめるようにした。
+- loggerに、実行時のコマンドを保存させるようにした。
+- tensorboardにロスと結果の画像を吐かせるようにした。
 ## 追加予定
 
 - 吐かせる画像の解像度は提出用はリサイズされていてはいけないので、その時だけ、always 1936 x 1216
@@ -60,9 +62,14 @@
 python city2sig.py
 ```
 これは、cityscapes のデータをsignate 仕様に変えてくれます。データセットを変えるときは、rootだけ変えば良くなります。mean とstdも自動で変更します。マスクのラベルも変更してくれます。くそ時間かかるので、tmuxとかでやったほうがいいよ。
+
+# 注意
+- クラス数が変わるとロスのスケールもだいぶ変わるので、lrは気をつけたほうがよさそう。
+
+
 ## プリトレイン
 ```
-CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/pretrain/train
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/pretrain/train --lr 5e-4 --weight_decay 5e-6
 ```
 ## ファインチューン
 ```

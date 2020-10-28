@@ -1,10 +1,10 @@
 
-## bisenetv2
+## bisenetv2 なんか、たくさん出てくるから仕方ないけど、あんまり使いたくないんだよなあ
 cfg = dict(
     model_type='bisenetv2',
     num_aux_heads=4,
-    lr_start = 5e-2,
-    weight_decay=5e-4,
+    lr_start = 5e-3,
+    weight_decay=5e-5,
     warmup_iters = 1000,
     max_iter = 150000,
     im_root='./datasets/signate',

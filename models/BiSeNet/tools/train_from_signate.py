@@ -75,6 +75,8 @@ def parse_args():
     parse.add_argument('--dataset_root', type=str) # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--val_root', type=str, default='datasets/finetune/val') # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--num_class', type=int, default=13, choices=[5, 13, 20]) # あんまり引数増やさずに全部変えたいなあ
+    parse.add_argument('--lr', type=float, default=5e-4)
+    parse.add_argument('--weight_decay', type=float, default=5e-6)
 
     return parse.parse_args()
 
@@ -167,6 +169,7 @@ def save_model(states, save_pth):
 
 def train():
     logger = logging.getLogger()
+    logger.info(args)
     is_dist = dist.is_initialized()
     
     print("args.local_rank", args.local_rank)
@@ -193,7 +196,7 @@ def train():
 
     ## ddp training
     net = set_model_dist(net)
-    print(net)
+
     ## meters
     time_meter, loss_meter, loss_pre_meter, loss_aux_meters = set_meters()
 
@@ -208,19 +211,6 @@ def train():
     ## train loop
     for it, (im, lb) in enumerate(dl):
         print("itr: ", it, "/", max_iter)
-
-        #print('palette = ', palette)
-        #print(im.shape)
-        #print(lb.shape)
-        #_matplotlib_imshow(im[0])
-        #print('lb', lb[0])
-        #print('palette[lb]', palette[lb[0]])
-        #print('palette[lb].shape', palette[lb[0]].shape)
-        non_transform = transforms.Compose([transforms.ToTensor()])
-        #_matplotlib_imshow(non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
-        #_matplotlib_imshow(non_transform(Image.fromarray(palette(np.uint8([lb[0]][0])))))
-        #writer.add_image('im_{}'.format(it), im[0])
-        #writer.add_image('lb_{}'.format(it), non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
 
         im = im.cuda()
         lb = lb.cuda()
@@ -250,20 +240,7 @@ def train():
         _ = [mter.update(lss.item()) for mter, lss in zip(loss_aux_meters, loss_aux)]
 
         ## print training log message
-        if (it + 1) % 1000 == 1: # 汚いけどご容赦　1になってるのは動作確認。
-            with torch.no_grad():
-                palette = get_palette(args.num_class)
-                dl_eval = get_data_loader(args.val_root, args.resolution, args.num_class, 1, None,
-                        None, mode='val', distributed=is_dist)
-                net.eval()
-                for it_eval, (im, lb) in enumerate(dl_eval):
-                    out = net(im)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
-                    print('out.shape', out.shape)
-                    pred = palette[out]
-                    print('np.unique(pred[0])', np.unique(pred))
-                    _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(pred))))
-                    writer.add_image('lb_{}'.format(it_eval), non_transform(Image.fromarray(np.uint8(pred))))
-
+        if (it + 1) % 1000 == 0: # 汚いけどご容赦　
             lr = lr_schdr.get_lr()
             lr = sum(lr) / len(lr)
             print_log_msg(
@@ -278,6 +255,22 @@ def train():
             logger.info('\nsave models to {}'.format(save_pth))
             state = net.module.state_dict()
             if dist.get_rank() == 0: torch.save(state, save_pth)
+
+        if (it + 1 % 10000) == 0: # 推論結果をtensor boardに書き込む。
+            with torch.no_grad():
+                palette = get_palette(args.num_class)
+                dl_eval = get_data_loader(args.val_root, args.resolution, args.num_class, 1, None,
+                        None, mode='val', distributed=is_dist)
+                net.eval()
+                non_transform = transforms.Compose([transforms.ToTensor()])
+                for it_eval, (im, lb) in enumerate(dl_eval):
+                    out = net(im)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
+                    #print('out.shape', out.shape)
+                    pred = palette[out]
+                    #print('np.unique(pred[0])', np.unique(pred))
+                    _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(pred))))
+                    writer.add_image('lb_{}_{}'.format(it, it_eval), non_transform(Image.fromarray(np.uint8(pred))))
+
 
     ## dump the final model and evaluate the result
     save_pth = osp.join(cfg.respth, 'model_final.pth')
@@ -302,7 +295,11 @@ def main():
         rank=args.local_rank
     )
     print('check2')
+
+    # 仕方ないので、argsでcfgを上書き
     cfg.respth = './res/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
+    cfg.lr_start = args.lr
+    cfg.weight_decay = args.weight_decay
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
     train()
