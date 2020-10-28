@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.distributed as dist
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from lib.models import model_factory
 from lib.models.bisenetv2 import SegmentHead
@@ -26,6 +27,10 @@ from lib.ohem_ce_loss import OhemCELoss
 from lib.lr_scheduler import WarmupPolyLrScheduler
 from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
+
+from demo_signate import make_palette
+from matplotlib import pyplot as plt
+from PIL import Image
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -48,7 +53,15 @@ torch.backends.cudnn.deterministic = True
 #  torch.backends.cudnn.benchmark = True
 #  torch.multiprocessing.set_sharing_strategy('file_system')
 
-
+def _matplotlib_imshow(img, one_channel=False):
+    if one_channel:
+        img = img.mean(dim=0)
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    if one_channel:
+        plt.imshow(npimg, cmap="Greys")
+    else:
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 
 def parse_args():
@@ -195,6 +208,21 @@ def train():
     ## train loop
     for it, (im, lb) in enumerate(dl):
         print("itr: ", it, "/", max_iter)
+
+        palette = make_palette(args.num_class)
+        print('palette = ', palette)
+        #print(im.shape)
+        #print(lb.shape)
+        #_matplotlib_imshow(im[0])
+        print('lb', lb[0])
+        print('palette[lb]', palette[lb[0]])
+        print('palette[lb].shape', palette[lb[0]].shape)
+        non_transform = transforms.Compose([transforms.ToTensor()])
+        _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
+        #_matplotlib_imshow(non_transform(Image.fromarray(palette(np.uint8([lb[0]][0])))))
+        #writer.add_image('im_{}'.format(it), im[0])
+        writer.add_image('lb_{}'.format(it), non_transform(Image.fromarray(np.uint8(palette[lb[0]][0]))))
+
         im = im.cuda()
         lb = lb.cuda()
 
