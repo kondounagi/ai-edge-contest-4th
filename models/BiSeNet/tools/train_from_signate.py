@@ -69,9 +69,8 @@ def parse_args():
     parse.add_argument('--local_rank', dest='local_rank', type=int, default=-1,)
     parse.add_argument('--port', dest='port', type=int, default=49333,)
     parse.add_argument('--model', dest='model', type=str, default='bisenetv2',)
-    parse.add_argument('--finetune-from', type=str, default=None,) # 使わないならここは削除したい
+    parse.add_argument('--finetune_from', type=str, default=None,) # 
     parse.add_argument('--resolution', type=int, default=1024) # 横幅（長い方）のこと
-    parse.add_argument('--resume', type=str) # fine tune とかの時は、ここから
     parse.add_argument('--dataset_root', type=str) # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--val_root', type=str, default='datasets/finetune/val') # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--num_class', type=int, default=13, choices=[5, 13, 20]) # あんまり引数増やさずに全部変えたいなあ

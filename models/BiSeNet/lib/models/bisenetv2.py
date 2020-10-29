@@ -279,7 +279,7 @@ class SegmentHead(nn.Module):
                 mode='bilinear', align_corners=True)
         return feat
 
-
+# クソですまそだが、これいじるときはbisenet_lightもいじれ。
 class BiSeNetV2(nn.Module):
 
     def __init__(self, n_classes):
@@ -323,6 +323,7 @@ class BiSeNetV2(nn.Module):
                 nn.init.zeros_(module.bias)
 
 
+# クソですまそだが、これいじるときはbisenetもいじれ。
 class BiSeNetV2_Light(nn.Module):
 
     def __init__(self, n_classes):

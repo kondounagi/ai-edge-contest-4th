@@ -69,11 +69,11 @@ python city2sig.py
 
 ## プリトレイン
 ```
-CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/pretrain/train --lr 5e-4 --weight_decay 5e-6
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --num_class 13 --dataset_root datasets/pretrain/train --lr 5e-4 --weight_decay 5e-6
 ```
 ## ファインチューン
 ```
-CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/finetune/train
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --num_class 13 --dataset_root datasets/finetune/train --lr 5e-4 --weight_decay 5e-6 --finetune_from ./res/res_2020_mm_yy_hh_mm/model_final.pth
 ```
 
 ## テスト

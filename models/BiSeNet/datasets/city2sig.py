@@ -127,8 +127,8 @@ def main():
     lb_folder_val_fine = 'finetune/val/lb'
 
     # pretrainにまずデータを移す
-    #img2sig(img_folder_city, img_folder_pre)
-    #mask2sig(lb_folder_city, lb_folder_pre)
+    img2sig(img_folder_city, img_folder_pre)
+    mask2sig(lb_folder_city, lb_folder_pre)
 
     # cityscapes のデータの中から、人も信号も映ってないものを削除する。
     rm_nohuman_imgs(img_folder_pre, lb_folder_pre)
