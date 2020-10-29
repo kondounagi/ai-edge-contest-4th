@@ -1,5 +1,8 @@
 # ai-edge-contest-4th
 
+## Requirements
+* [Vitis-AI 2019.2](https://www.xilinx.com/html_docs/vitis_ai/1_0/index.html)
+
 ## [アイデア賞用レポート](https://docs.google.com/presentation/d/1eMQ7aspS-UqENqdJxmf0atEmAJCLnW1w9lUrTRBmPeg/edit?usp=sharing)
 みんなで編集しよう！
 メモを手元に書く代わりにスライドにしておけば，最後のレポート作成がとても便利に！
