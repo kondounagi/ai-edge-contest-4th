@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.distributed as dist
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
 from lib.models import model_factory
 from configs import cfg_factory
@@ -62,8 +63,9 @@ cfg = cfg_factory[args.model]
 def set_model():
     net = model_factory[cfg.model_type](19)
     if not args.finetune_from is None:
-        net.load_state_dict(torch.load(args.finetune_from))
+        net.load_state_dict(torch.load(args.finetune_from, map_location='cpu'))
     if cfg.use_sync_bn: net = set_syncbn(net)
+    
     net.cuda()
     net.train()
     criteria_pre = OhemCELoss(0.7)
@@ -136,23 +138,41 @@ def save_model(states, save_pth):
         modelpth = osp.join(save_pth, save_name)
         if dist.is_initialized() and dist.get_rank() == 0:
             torch.save(state, modelpth)
+def imshow(inp, title=None):
+    """Imshow for Tensor."""
+    inp = inp.numpy().transpose((1, 2, 0))
+    mean = np.array([0, 0, 0])
+    std = np.array([0, 0, 0])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    plt.imshow(inp)
+    if title is not None:
+        plt.title(title)
+    plt.pause(0.001)  # pause a bit so that plots are updated
+
+
 
 
 def train():
     logger = logging.getLogger()
     is_dist = dist.is_initialized()
-    
-    print("args.local_rank", args.local_rank)
-    print("args.port: ", args.port)
-    print("args.model: ", args.model)
-    print("args.finetune_from: ", args.finetune_from)
-    
+    #is_dist = False 
+
     ## dataset
+    print("im_root: ", cfg.im_root)
+    print("train_im_anns: ", cfg.train_im_anns)
+    print("ims_per_gpu: ", cfg.ims_per_gpu)
+    print("scales: ", cfg.scales)
+    print("cropsize: ", cfg.cropsize)
+    print("max_iter: ", cfg.max_iter)
+    print("is_dist: ", is_dist)
     dl = get_data_loader(
             cfg.im_root, cfg.train_im_anns,
             cfg.ims_per_gpu, cfg.scales, cfg.cropsize,
             cfg.max_iter, mode='train', distributed=is_dist)
-
+    print("defined DL")
+    #print(list(dl))
+    
     ## model
     net, criteria_pre, criteria_aux = set_model()
 
@@ -165,7 +185,7 @@ def train():
         net, optim = amp.initialize(net, optim, opt_level=opt_level)
 
     ## ddp training
-    net = set_model_dist(net)
+    #net = set_model_dist(net)
 
     ## meters
     time_meter, loss_meter, loss_pre_meter, loss_aux_meters = set_meters()
@@ -174,13 +194,26 @@ def train():
     lr_schdr = WarmupPolyLrScheduler(optim, power=0.9,
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
-    print("len(dl)", len(dl))
-    #tmp = dl.__iter__()
-    #print(tmp.next())
-    max_iter = len(dl)
+    
+    print("prepared for train")
+    print("current_device() :", torch.cuda.current_device())
+    print("device :", torch.cuda.device(torch.cuda.current_device()))
+    print("get_device_name :", torch.cuda.get_device_name())
+    print("is_available :", torch.cuda.is_available())
     ## train loop
+    
+    if torch.cuda.is_available():
+        net = torch.nn.DataParallel(net)
+   # Get a batch of training data
+    inputs, classes = next(iter(dl))
+
+    # Make a grid from batch
+    out = torchvision.utils.make_grid(inputs)
+
+    imshow(out, title=[class_names[x] for x in classes])
+            
     for it, (im, lb) in enumerate(dl):
-        print("itr: ", it, "/", max_iter)
+        print("iter: {}".format(it))
         im = im.cuda()
         lb = lb.cuda()
 
@@ -213,17 +246,11 @@ def train():
                 it, cfg.max_iter, lr, time_meter, loss_meter,
                 loss_pre_meter, loss_aux_meters)
 
-            ## dump the final model and evaluate the result
-            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
-            logger.info('\nsave models to {}'.format(save_pth))
-            state = net.module.state_dict()
-            if dist.get_rank() == 0: torch.save(state, save_pth)
-
     ## dump the final model and evaluate the result
-    save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
+    save_pth = osp.join(cfg.respth, 'model_final.pth')
     logger.info('\nsave models to {}'.format(save_pth))
-    state = net.module.state_dict()
-    if dist.get_rank() == 0: torch.save(state, save_pth)
+    #state = net.module.state_dict()
+    #if dist.get_rank() == 0: torch.save(state, save_pth)
 
     logger.info('\nevaluating the final model')
     torch.cuda.empty_cache()
@@ -234,6 +261,7 @@ def train():
 
 
 def main():
+    '''
     torch.cuda.set_device(args.local_rank)
     dist.init_process_group(
         backend='nccl',
@@ -241,9 +269,9 @@ def main():
         world_size=torch.cuda.device_count(),
         rank=args.local_rank
     )
+    '''
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
-    print("finish before train")
     train()
 
 

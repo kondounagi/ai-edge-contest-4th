@@ -26,13 +26,18 @@ import torch.nn.functional as F
 
 class OhemCELoss(nn.Module):
 
-    def __init__(self, thresh, ignore_lb=255):
+    def __init__(self, thresh, ignore_lb=-1):
         super(OhemCELoss, self).__init__()
         self.thresh = -torch.log(torch.tensor(thresh, requires_grad=False, dtype=torch.float)).cuda()
         self.ignore_lb = ignore_lb
         self.criteria = nn.CrossEntropyLoss(ignore_index=ignore_lb, reduction='none')
 
     def forward(self, logits, labels):
+        #print("in Loss function")
+        #print(logits.shape)
+        #print("logits", logits)
+        #print(labels.shape)
+        #print("labels", labels)
         n_min = labels[labels != self.ignore_lb].numel() // 16
         loss = self.criteria(logits, labels).view(-1)
         loss_hard = loss[loss > self.thresh]
