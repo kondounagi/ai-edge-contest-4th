@@ -7,7 +7,7 @@ if [ ! -d Vitis-ai ]; then
     cd ..
 fi
 export TRD_HOME=$PWD/Vitis-AI/DPU-TRD
-export SDX_PLATFORM=ultra96v2_oob/platform_repo/ultra96v2_oob/export/ultra96v2_oob/ultra96v2_oob.xpfm
+export SDX_PLATFORM=/home/user/ai-edge/ai-edge-contest-4th/3rd/platform/ultra96v2_oob/platform_repo/ultra96v2_oob/export/ultra96v2_oob/ultra96v2_oob.xpfm
 cd Vitis-AI/DPU-TRD/prj/Vitis
 mv dpu_conf.vh dpu_conf.vh.bak
 cat dpu_conf.vh.bak | sed -e 's/ine B4096/ine B1600/g' -e 's/POOL_AVG_ENABLE/POOL_AVG_DISABLE/g' -e 's/DWCV_ENABLE/DWCV_DISABLE/g' -e 's/DSP48_USAGE_LOW/DSP48_USAGE_HIGH/g' > dpu_conf.vh
