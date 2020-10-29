@@ -1,5 +1,5 @@
 $ freeze_graph \
-    --input_graph  /tmp/inception_v1_inf_graph.pb \
+    --input_graph  bisenet_v1_0.pb \
     --input_checkpoint  /tmp/checkpoints/model.ckpt-1000 \
     --input_binary  true \
     --output_graph  /tmp/frozen_graph.pb \
