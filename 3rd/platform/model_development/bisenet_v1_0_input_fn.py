@@ -3,7 +3,6 @@ import cv2
 
 
 calib_image_dir = r'./calib_images/'
-calib_image_list = r'./calib_image_list.csv'
 calib_batch_size = 32
 
 def _resize(self, img):
@@ -22,8 +21,7 @@ def _resize(self, img):
 
 def calib_input(iter):
     images = []
-    with open(calib_image_list) as f:
-        lines = f.readlines()
+    lines = os.listdir(calib_image_dir)
     for index in range(0, calib_batch_size):
         curline = lines[iter * calib_batch_size + index]
         calib_image_name = curline.strip()
