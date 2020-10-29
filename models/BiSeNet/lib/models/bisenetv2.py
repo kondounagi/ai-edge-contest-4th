@@ -323,6 +323,41 @@ class BiSeNetV2(nn.Module):
                 nn.init.zeros_(module.bias)
 
 
+class BiSeNetV2_Light(nn.Module):
+
+    def __init__(self, n_classes):
+        super(BiSeNetV2, self).__init__()
+        self.detail = DetailBranch()
+        self.segment = SegmentBranch()
+        self.bga = BGALayer()
+
+        ## TODO: what is the number of mid chan ?
+        self.head = SegmentHead(128, 1024, n_classes)
+    
+        self.init_weights()
+
+    def forward(self, x):
+        size = [1216, 1936] # 逆かもしれん。
+        feat_d = self.detail(x)
+        feat_s = self.segment(x)[4]
+        feat_head = self.bga(feat_d, feat_s)
+
+        logits = self.head(feat_head, size)
+        return logits
+
+    def init_weights(self):
+        for name, module in self.named_modules():
+            if isinstance(module, (nn.Conv2d, nn.Linear)):
+                nn.init.kaiming_normal_(module.weight, mode='fan_out')
+                if not module.bias is None: nn.init.constant_(module.bias, 0)
+            elif isinstance(module, nn.modules.batchnorm._BatchNorm):
+                if hasattr(module, 'last_bn') and module.last_bn:
+                    nn.init.zeros_(module.weight)
+                else:
+                    nn.init.ones_(module.weight)
+                nn.init.zeros_(module.bias)
+
+
 if __name__ == "__main__":
     #  x = torch.randn(16, 3, 1024, 2048)
     #  detail = DetailBranch()
