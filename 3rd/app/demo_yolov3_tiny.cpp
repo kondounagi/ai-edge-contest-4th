@@ -47,7 +47,8 @@ using namespace cv;
 #define KERNEL_NAME "tinyyolov3"
 
 #define THREADS 2
-#define BLOCK_SIZE 50 // ブロックサイズって何よ
+// NOTE: 一度に読み込む画像数かな？
+#define BLOCK_SIZE 50
 
 const char *yolov3_config = {
     "   name: \"tinyyolov3\" \n"
@@ -154,6 +155,8 @@ int main_thread(int s_num, int e_num, int tid) {
     string filename = "result" + std::to_string(tid) + ".txt";
     FILE *fp = fopen(filename.c_str(), "w");
 
+    // NOTE: モデルをGPUにロード?
+    // DPUアクセスのためのハンドラを取りに行っているだけ？
     auto task = [] {
         std::lock_guard<std::mutex> lock(mtx_);         // Important!
         return xilinx::ai::DpuTask::create(KERNEL_NAME);
@@ -172,8 +175,10 @@ int main_thread(int s_num, int e_num, int tid) {
     // Main Loop
     int cnt=0;
     for(cnt=s_num; cnt<=e_num; cnt+=BLOCK_SIZE){
+        // NOTE: ロード時間の計測開始
         clock_gettime(CLOCK_REALTIME, &ts01);
 
+        // NOTE: BLCOK_SIZE枚だけロード
         for(int i=0; i<BLOCK_SIZE;i++){
             if(cnt+i>e_num) break;
 
@@ -189,11 +194,13 @@ int main_thread(int s_num, int e_num, int tid) {
         
         usleep(1000);
         clock_gettime(CLOCK_REALTIME, &ts02);
+        // NOTE: ロード時間の計測終了，推論時間計測開始
         sum1 += etime_sum(ts02,ts01);
         barrier(tid);
 
         for(int i=0; i<BLOCK_SIZE;i++){
             if(cnt+i>e_num) break;
+            // NOTE: スライドの記号と一致している？（BとかCとか）
             // Resize the image, Begin B
             cv::Mat image;
             cv::resize(input_image[i], image, size);
@@ -207,6 +214,7 @@ int main_thread(int s_num, int e_num, int tid) {
                 //clock_gettime(CLOCK_REALTIME, &tt02);
             }
             // Get output
+            // NOTE: メインの推論部分
             const auto output_tensor = task->getOutputTensor(0);
 
             // NOTE: Xilinx AI LibraryのSemantic Segmentationモデルを探して，
@@ -214,7 +222,11 @@ int main_thread(int s_num, int e_num, int tid) {
             const auto results = xilinx::ai::yolov3_post_process(
                 input_tensor, output_tensor, dpu_config, ORIG_WIDTH, ORIG_HEIGHT);
 
+            // NOTE: 入力画像を事前にResizeしているので，モデル側を変更して元の画像サイズにアップサンプリングするようにする
+            // JSONに落とすと逐次処理をしないと行けないので遅いかも
+            // モデルの生出力をargmaxしたものを提出したいかな〜
             for (auto& box : results.bboxes) {
+                // NOTE: 全体のBOX
                 float xmin = box.x * ORIG_WIDTH + 1;
                 float ymin = box.y * ORIG_HEIGHT + 1;
                 float xmax = xmin + box.width * ORIG_WIDTH;

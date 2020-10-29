@@ -1,6 +1,83 @@
 # BiSeNetV1 & BiSeNetV2
 
-My implementation of [BiSeNetV1](https://arxiv.org/abs/1808.00897) and [BiSeNetV2](https://arxiv.org/abs/1808.00897).
+## 追加した機能
+- fine tune, pre trainをうまく分ける。
+- データセットの読み方により柔軟性を持たせる。（dataset rootの指定のみ）
+- 簡単にデータセットをいじれるようにする。
+- 解像度を変更できるようにする。
+- クラスを意味論的に不整合のない範囲でまとめる（省メモリ、行列の小規模化による高速化を期待）。
+- datasetのmeanとstdの調整
+- 表記揺れ、わかりにくい名前の変更(lb, ann, path, pth, img, imageの統一)
+- _get_paired_pathsを追加。
+- BaseDataset._resize()
+- argumentをいくつか追加。
+- いろいろ関数化されてないところを直した。（main関数ないやつとかを綺麗にしたり）
+- pretrainでは、すべての画像に人か信号が入ってるように選択した（city2sig.py)
+- その他クソコードをできるだけ直した。（星の数ほどのmagic numbers）
+- 実験結果を実験ごとにちゃんとまとめるようにした。
+- loggerに、実行時のコマンドを保存させるようにした。
+- tensorboardにロスと結果の画像を吐かせるようにした。
+## 追加予定
+
+- 吐かせる画像の解像度は提出用はリサイズされていてはいけないので、その時だけ、always 1936 x 1216
+かなり整えたけど、まだ整いきってないです。
+引数周りは、力及ばず、わずかにクソコードみがあるけど、ご容赦くだされ。
+
+## いじったファイル
+- signate_cv2.py
+- train_from_signate.py
+- base_dataset_signate.py
+- demo_signate
+- evaluate_from_signate
+- ohem_ce_loss.py
+## データセットの準備
+ディレクトリをこんな感じにします。
+```
+-datasets/
+        |-cityscapes/
+                |-gtFine/
+                |-leftImg8bit/
+        |-signate/
+                |-seg_train_annotations/
+                |-seg_train_images/
+        |-finetune/
+                |-train/
+                        |-img/
+                        |-lb/
+                |-val/
+                        |-img/
+                        |-lb/
+        |-pretrain/
+                |-train/
+                        |-img/
+                        |-lb/
+                |-val/
+                        |-img/
+                        |-lb/               
+        |-test/
+        |-city2sig.py
+```
+この時、cityscapesとsignateには加工してないデータを入れてください。
+```
+python city2sig.py
+```
+これは、cityscapes のデータをsignate 仕様に変えてくれます。データセットを変えるときは、rootだけ変えば良くなります。mean とstdも自動で変更します。マスクのラベルも変更してくれます。くそ時間かかるので、tmuxとかでやったほうがいいよ。
+
+# 注意
+- クラス数が変わるとロスのスケールもだいぶ変わるので、lrは気をつけたほうがよさそう。
+
+
+## プリトレイン
+```
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/pretrain/train --lr 5e-4 --weight_decay 5e-6
+```
+## ファインチューン
+```
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train_from_signate.py --model bisenetv2 --dataset_root datasets/finetune/train
+```
+
+## テスト
+
 
 
 The mIOU evaluation result of the models trained and evaluated on cityscapes train/val set is:

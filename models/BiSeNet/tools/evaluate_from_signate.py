@@ -28,7 +28,7 @@ from lib.signate_cv2 import get_data_loader
 
 class MscEvalV0(object):
 
-    def __init__(self, scales=(0.5, ), flip=False, ignore_label=255):
+    def __init__(self, scales=(0.5, ), flip=False, ignore_label=-1):
         self.scales = scales
         self.flip = flip
         self.ignore_label = ignore_label
@@ -85,7 +85,7 @@ class MscEvalCrop(object):
         cropstride=2./3,
         flip=True,
         scales=[0.5, 0.75, 1, 1.25, 1.5, 1.75],
-        lb_ignore=255,
+        lb_ignore=-1,
     ):
         self.scales = scales
         self.ignore_label = lb_ignore
@@ -184,9 +184,11 @@ class MscEvalCrop(object):
 
 
 @torch.no_grad()
-def eval_model(net, ims_per_gpu, im_root, im_anns):
+def eval_model(net, ims_per_gpu, root, resolution, num_class):
+    im_root = os.path.join(root, 'img')
+    lb_root = os.path.join(root, 'lb')
     is_dist = dist.is_initialized()
-    dl = get_data_loader(im_root, im_anns, ims_per_gpu, None,
+    dl = get_data_loader(root, resolution, num_class, ims_per_gpu, None,
             None, mode='val', distributed=is_dist)
     net.eval()
 
@@ -194,7 +196,7 @@ def eval_model(net, ims_per_gpu, im_root, im_anns):
     logger = logging.getLogger()
 
     single_scale = MscEvalV0((1., ), False)
-    mIOU = single_scale(net, dl, 19)
+    mIOU = single_scale(net, dl, num_class)
     heads.append('single_scale')
     mious.append(mIOU)
     logger.info('single mIOU is: %s\n', mIOU)
@@ -204,15 +206,15 @@ def eval_model(net, ims_per_gpu, im_root, im_anns):
         cropstride=2. / 3,
         flip=False,
         scales=(1., ),
-        lb_ignore=255,
+        lb_ignore=-1,
     )
-    mIOU = single_crop(net, dl, 19)
+    mIOU = single_crop(net, dl, num_class)
     heads.append('single_scale_crop')
     mious.append(mIOU)
     logger.info('single scale crop mIOU is: %s\n', mIOU)
 
     ms_flip = MscEvalV0((0.5, 0.75, 1, 1.25, 1.5, 1.75), True)
-    mIOU = ms_flip(net, dl, 19)
+    mIOU = ms_flip(net, dl, num_class)
     heads.append('ms_flip')
     mious.append(mIOU)
     logger.info('ms flip mIOU is: %s\n', mIOU)
@@ -222,21 +224,21 @@ def eval_model(net, ims_per_gpu, im_root, im_anns):
         cropstride=2. / 3,
         flip=True,
         scales=(0.5, 0.75, 1.0, 1.25, 1.5, 1.75),
-        lb_ignore=255,
+        lb_ignore=-1,
     )
-    mIOU = ms_flip_crop(net, dl, 19)
+    mIOU = ms_flip_crop(net, dl, num_class)
     heads.append('ms_flip_crop')
     mious.append(mIOU)
     logger.info('ms crop mIOU is: %s\n', mIOU)
     return heads, mious
 
 
-def evaluate(cfg, weight_pth):
+def evaluate(cfg, weight_pth, root, resolution, num_class):
     logger = logging.getLogger()
 
     ## model
     logger.info('setup and restore model')
-    net = model_factory[cfg.model_type](19)
+    net = model_factory[cfg.model_type](num_class)
     #  net = BiSeNetV2(19)
     net.load_state_dict(torch.load(weight_pth))
     net.cuda()
@@ -251,7 +253,7 @@ def evaluate(cfg, weight_pth):
         )
 
     ## evaluator
-    heads, mious = eval_model(net, 2, cfg.im_root, cfg.val_im_anns)
+    heads, mious = eval_model(net, 2, root, resolution, num_class)
     logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
 
