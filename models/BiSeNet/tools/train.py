@@ -16,15 +16,25 @@ import torch
 import torch.nn as nn
 import torch.distributed as dist
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from lib.models import model_factory
+from lib.models.bisenetv2 import SegmentHead
 from configs import cfg_factory
-from lib.cityscapes_cv2 import get_data_loader
+from lib.signate_cv2 import get_data_loader
 from tools.evaluate import eval_model
 from lib.ohem_ce_loss import OhemCELoss
 from lib.lr_scheduler import WarmupPolyLrScheduler
 from lib.meters import TimeMeter, AvgMeter
 from lib.logger import setup_logger, print_log_msg
+from lib.color_palette import get_palette
+
+from matplotlib import pyplot as plt
+from PIL import Image
+
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
 
 # apex
 has_apex = True
@@ -43,27 +53,45 @@ torch.backends.cudnn.deterministic = True
 #  torch.backends.cudnn.benchmark = True
 #  torch.multiprocessing.set_sharing_strategy('file_system')
 
-
+def _matplotlib_imshow(img, one_channel=False):
+    if one_channel:
+        img = img.mean(dim=0)
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    if one_channel:
+        plt.imshow(npimg, cmap="Greys")
+    else:
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 
 def parse_args():
     parse = argparse.ArgumentParser()
     parse.add_argument('--local_rank', dest='local_rank', type=int, default=-1,)
-    parse.add_argument('--port', dest='port', type=int, default=44554,)
+    parse.add_argument('--port', dest='port', type=int, default=49333,)
     parse.add_argument('--model', dest='model', type=str, default='bisenetv2',)
-    parse.add_argument('--finetune-from', type=str, default=None,)
+    parse.add_argument('--finetune_from', type=str, default=None,) # 
+    parse.add_argument('--resolution', type=int, default=1024) # 横幅（長い方）のこと
+    parse.add_argument('--dataset_root', type=str) # fine tune, pre train でデータを簡単に分離できるようにしたい
+    parse.add_argument('--val_root', type=str, default='datasets/finetune/val') # fine tune, pre train でデータを簡単に分離できるようにしたい
+    parse.add_argument('--num_class', type=int, default=13, choices=[5, 13, 20]) # あんまり引数増やさずに全部変えたいなあ
+    parse.add_argument('--lr', type=float, default=5e-4)
+    parse.add_argument('--weight_decay', type=float, default=5e-6)
+
     return parse.parse_args()
 
 args = parse_args()
 cfg = cfg_factory[args.model]
 
 
-
 def set_model():
-    net = model_factory[cfg.model_type](19)
+    net = model_factory[cfg.model_type](args.num_class)
     if not args.finetune_from is None:
         net.load_state_dict(torch.load(args.finetune_from))
     if cfg.use_sync_bn: net = set_syncbn(net)
+        
+    # finetune this layer(n_class=19)
+    #net.head = SegmentHead(128, 1024, args.num_class)
+    
     net.cuda()
     net.train()
     criteria_pre = OhemCELoss(0.7)
@@ -140,6 +168,7 @@ def save_model(states, save_pth):
 
 def train():
     logger = logging.getLogger()
+    logger.info(args)
     is_dist = dist.is_initialized()
     
     print("args.local_rank", args.local_rank)
@@ -149,8 +178,8 @@ def train():
     
     ## dataset
     dl = get_data_loader(
-            cfg.im_root, cfg.train_im_anns,
-            cfg.ims_per_gpu, cfg.scales, cfg.cropsize,
+            args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
+            cfg.ims_per_gpu, cfg.scales, [args.resolution//8, args.resolution//4], # ここにcropsizeがあるので忘れなように。
             cfg.max_iter, mode='train', distributed=is_dist)
 
     ## model
@@ -166,7 +195,6 @@ def train():
 
     ## ddp training
     net = set_model_dist(net)
-
     ## meters
     time_meter, loss_meter, loss_pre_meter, loss_aux_meters = set_meters()
 
@@ -175,7 +203,7 @@ def train():
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
     print("len(dl)", len(dl))
-    #tmp = dl.__iter__()
+    tmp = dl.__iter__()
     #print(tmp.next())
     max_iter = len(dl)
     ## train loop
@@ -188,9 +216,12 @@ def train():
 
         optim.zero_grad()
         logits, *logits_aux = net(im)
+        #print(logits.shape)
+        #print(len(logits_aux))
         loss_pre = criteria_pre(logits, lb)
         loss_aux = [crit(lgt, lb) for crit, lgt in zip(criteria_aux, logits_aux)]
         loss = loss_pre + sum(loss_aux)
+        writer.add_scalar('loss', loss.item(), it)
         if has_apex:
             with amp.scale_loss(loss, optim) as scaled_loss:
                 scaled_loss.backward()
@@ -206,28 +237,47 @@ def train():
         _ = [mter.update(lss.item()) for mter, lss in zip(loss_aux_meters, loss_aux)]
 
         ## print training log message
-        if (it + 1) % 100 == 0:
+        if (it + 1) % 1000 == 0: # 汚いけどご容赦　
             lr = lr_schdr.get_lr()
             lr = sum(lr) / len(lr)
             print_log_msg(
                 it, cfg.max_iter, lr, time_meter, loss_meter,
                 loss_pre_meter, loss_aux_meters)
+            heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class) # クラス数を柔軟に変えたい 
+            writer.add_scalar('miou', np.mean(mious), it)
+            logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
             ## dump the final model and evaluate the result
-            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
+            save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(it)) # ここもっとスッキリさせようぜ
             logger.info('\nsave models to {}'.format(save_pth))
             state = net.module.state_dict()
             if dist.get_rank() == 0: torch.save(state, save_pth)
 
+        if (it + 1 % 10000) == 0: # 推論結果をtensor boardに書き込む。
+            with torch.no_grad():
+                palette = get_palette(args.num_class)
+                dl_eval = get_data_loader(args.val_root, args.resolution, args.num_class, 1, None,
+                        None, mode='val', distributed=is_dist)
+                net.eval()
+                non_transform = transforms.Compose([transforms.ToTensor()])
+                for it_eval, (im, lb) in enumerate(dl_eval):
+                    out = net(im)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
+                    #print('out.shape', out.shape)
+                    pred = palette[out]
+                    #print('np.unique(pred[0])', np.unique(pred))
+                    _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(pred))))
+                    writer.add_image('lb_{}_{}'.format(it, it_eval), non_transform(Image.fromarray(np.uint8(pred))))
+
+
     ## dump the final model and evaluate the result
-    save_pth = osp.join(cfg.respth, 'model_{}.pth'.format(time.strftime('%Y_%m_%d_%H_%M')))
+    save_pth = osp.join(cfg.respth, 'model_final.pth')
     logger.info('\nsave models to {}'.format(save_pth))
     state = net.module.state_dict()
     if dist.get_rank() == 0: torch.save(state, save_pth)
 
     logger.info('\nevaluating the final model')
     torch.cuda.empty_cache()
-    heads, mious = eval_model(net, 2, cfg.im_root, cfg.val_im_anns)
+    heads, mious = eval_model(net, 2, args.dataset_root, args.resolution, args.num_class)
     logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
     return
@@ -241,11 +291,16 @@ def main():
         world_size=torch.cuda.device_count(),
         rank=args.local_rank
     )
+    print('check2')
+
+    # 仕方ないので、argsでcfgを上書き
+    cfg.respth = './res/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
+    cfg.lr_start = args.lr
+    cfg.weight_decay = args.weight_decay
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
-    print("finish before train")
     train()
-
+    writer.flush()
 
 if __name__ == "__main__":
     main()

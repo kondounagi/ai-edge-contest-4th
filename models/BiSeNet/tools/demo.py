@@ -12,7 +12,7 @@ import cv2
 
 from lib.models import model_factory
 from configs import cfg_factory
-from lib.base_dataset_signate import as_same_class
+from lib.base_dataset import as_same_class
 from lib.color_palette import get_palette
 
 #torch.set_grad_enabled(False) こいつクソ害悪だろ

@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 sys.path.insert(0, '.')
-from lib.base_dataset_signate import as_same_class
+from lib.base_dataset import as_same_class
 
 # クラスすうに柔軟性を持たせるにあたり、signate のgrey scale の値の若い順にした。
 labels_info = [
