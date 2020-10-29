@@ -62,3 +62,6 @@ $ cat data/seg_train_annotations/train_0000.json
   * 実装はない
 * [Real-Time Semantic Segmentation | paper with code](https://paperswithcode.com/sota/real-time-semantic-segmentation-on-cityscapes)
   * Fastersegとかも良さそう
+  
+* 最終的に
+  * Bisenet, Fast-scnn, FasterSegの３つのモデルをそれぞれ動かしてみた.
