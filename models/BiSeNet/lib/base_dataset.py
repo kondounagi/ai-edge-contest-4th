@@ -145,9 +145,11 @@ def _get_paired_img_path(root):
     img_paths = os.listdir(os.path.join(root, img_root))
     lb_paths = os.listdir(os.path.join(root, lb_root))
     for i, filename in enumerate(img_paths):
-        img_paths[i] = os.path.join(root, img_root, filename)
+        if 'png' in filename or 'jpg' in filename:
+            img_paths[i] = os.path.join(root, img_root, filename)
     for i, filename in enumerate(lb_paths):
-        lb_paths[i] = os.path.join(root, lb_root, filename)
+        if 'png' in filename or 'jpg' in filename:
+            lb_paths[i] = os.path.join(root, lb_root, filename)
     img_paths.sort()
     lb_paths.sort()
 
