@@ -22,7 +22,7 @@ from lib.models import model_factory
 from lib.models.bisenetv2 import SegmentHead
 from configs import cfg_factory
 from lib.signate_cv2 import get_data_loader
-from tools.evaluate import eval_model
+from tools.eval import eval_model
 from lib.ohem_ce_loss import OhemCELoss
 from lib.lr_scheduler import WarmupPolyLrScheduler
 from lib.meters import TimeMeter, AvgMeter
@@ -253,7 +253,7 @@ def train():
             state = net.module.state_dict()
             if dist.get_rank() == 0: torch.save(state, save_pth)
 
-        if (it + 1 % 10000) == 0: # 推論結果をtensor boardに書き込む。
+        if (it + 1) % 10000 == 0: # 推論結果をtensor boardに書き込む。
             with torch.no_grad():
                 palette = get_palette(args.num_class)
                 dl_eval = get_data_loader(args.val_root, args.resolution, args.num_class, 1, None,
@@ -277,7 +277,7 @@ def train():
 
     logger.info('\nevaluating the final model')
     torch.cuda.empty_cache()
-    heads, mious = eval_model(net, 2, args.dataset_root, args.resolution, args.num_class)
+    heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class)
     logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
 
     return
