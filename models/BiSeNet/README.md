@@ -77,7 +77,7 @@ CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 too
 ```
 
 ## テスト
-
+- bisenetv2_lightを使ってください。これはtrainの時に出していた、補助関数をすべてカットしたものです。
 
 
 The mIOU evaluation result of the models trained and evaluated on cityscapes train/val set is:
