@@ -10,7 +10,7 @@ import argparse
 import math
 from tabulate import tabulate
 
-from tqdm import tqdm
+from rich.progress import track
 import numpy as np
 import cv2
 
@@ -39,7 +39,7 @@ class MscEvalV0(object):
         if dist.is_initialized() and dist.get_rank() != 0:
             diter = enumerate(dl)
         else:
-            diter = enumerate(tqdm(dl))
+            diter = enumerate(track(dl, description='evaluating'))
         for i, (imgs, label) in diter:
             N, _, H, W = label.shape
             label = label.squeeze(1).cuda()
@@ -154,7 +154,7 @@ class MscEvalCrop(object):
 
     @torch.no_grad()
     def __call__(self, net, dl, n_classes):
-        dloader = dl if self.distributed and not dist.get_rank() == 0 else tqdm(dl)
+        dloader = dl if self.distributed and not dist.get_rank() == 0 else track(dl, description='evaluating')
 
         hist = torch.zeros(n_classes, n_classes).cuda().detach()
         hist.requires_grad_(False)

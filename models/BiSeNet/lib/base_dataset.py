@@ -14,7 +14,7 @@ from PIL import Image
 
 import lib.transform_cv2 as T
 from lib.sampler import RepeatedDistSampler
-from tqdm import tqdm
+from rich.progress import track
 """ ごめん、これデバッグがえぐくなりがちなので変えた。
 signate_pallette = [29, 183, 69, 166, 76,
                     117, 150, 226, 155, 115,
@@ -92,7 +92,7 @@ class BaseDataset(Dataset):
         self._load_on_memory()
 
     def _load_on_memory(self):
-        for i in tqdm(range(self.len)):
+        for i in track(range(self.len), description='loading images'):
             img = cv2.imread(self.img_paths[i])
             lb = np.asarray(Image.open(self.lb_paths[i]).convert('L'))
             self.imgs.append(img)

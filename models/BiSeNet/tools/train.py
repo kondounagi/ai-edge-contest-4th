@@ -31,6 +31,7 @@ from lib.color_palette import get_palette
 
 from matplotlib import pyplot as plt
 from PIL import Image
+from rich.progress import track
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -207,8 +208,7 @@ def train():
     #print(tmp.next())
     max_iter = len(dl)
     ## train loop
-    for it, (im, lb) in enumerate(dl):
-        print("itr: ", it, "/", max_iter)
+    for it, (im, lb) in track(enumerate(dl), description='training', total=max_iter):
         im = im.cuda()
         lb = lb.cuda()
 
