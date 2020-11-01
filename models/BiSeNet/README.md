@@ -17,11 +17,14 @@
 - 実験結果を実験ごとにちゃんとまとめるようにした。
 - loggerに、実行時のコマンドを保存させるようにした。
 - tensorboardにロスと結果の画像を吐かせるようにした。
-## 追加予定
-
 - 吐かせる画像の解像度は提出用はリサイズされていてはいけないので、その時だけ、always 1936 x 1216
 かなり整えたけど、まだ整いきってないです。
+
+
+
 引数周りは、力及ばず、わずかにクソコードみがあるけど、ご容赦くだされ。
+## 追加予定
+
 
 ## いじったファイル
 - signate_cv2.py
@@ -30,7 +33,9 @@
 - demo_signate
 - evaluate_from_signate
 - ohem_ce_loss.py
-## データセットの準備
+## 準備
+
+### データセットの準備
 ディレクトリをこんな感じにします。
 ```
 -datasets/
@@ -63,17 +68,31 @@ python city2sig.py
 ```
 これは、cityscapes のデータをsignate 仕様に変えてくれます。データセットを変えるときは、rootだけ変えば良くなります。mean とstdも自動で変更します。マスクのラベルも変更してくれます。くそ時間かかるので、tmuxとかでやったほうがいいよ。
 
+### 環境の準備
+デフォでは5GBあれば大丈夫（ラボ内GPUならall ok）。
+cu+92で動くよ（というか、pipして）
+```
+$ Bisenet/
+python -m venv venv
+$ Bisenet/
+source venv/bin/activate
+$ Bisenet/
+pip install -r requirements.txt
+$ Bisenet/
+deactivate
+```
+tmux内でactivateしっぱなしがおすすめだよ。その場合はもちろんdeactivateしなくていいです。opencvのせいで10分くらいはかかると思ったがいいよ。
 # 注意
 - クラス数が変わるとロスのスケールもだいぶ変わるので、lrは気をつけたほうがよさそう。
 
 
 ## プリトレイン
 ```
-CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train.py --model bisenetv2 --num_class 13 --dataset_root datasets/pretrain/train --lr 5e-4 --weight_decay 5e-6
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train.py --model bisenetv2 --num_class 13 --dataset_root datasets/pretrain/train --lr 5e-2 --weight_decay 5e-4
 ```
 ## ファインチューン
 ```
-CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train.py --model bisenetv2 --num_class 13 --dataset_root datasets/finetune/train --lr 5e-4 --weight_decay 5e-6 --finetune_from ./res/res_2020_mm_yy_hh_mm/model_final.pth
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train.py --model bisenetv2 --num_class 13 --dataset_root datasets/finetune/train --lr 5e-3 --weight_decay 5e-5 --finetune_from ./res/res_2020_mm_yy_hh_mm/model_final.pth
 ```
 
 ## テスト
