@@ -80,12 +80,16 @@ CUDA_VISIBLE_DEVICES=0 python tools/test.py --save_folder res/images/1024 --root
 まず、validationのgtをjsonにしたものを作る。res/jsons/gt.jsonができる
 ```
 $ BiseNet
-python signate_metrics/make_submit.py --path_to_annotations datasets/finetune/val/img --output_name res/jsons/gt
+python signate_metrics/make_submit.py --path_to_annotations datasets/finetune/val/lb --output_name res/jsons/gt
 ```
 さっきmodelに吐かせたやつをjsonにする。解像度とかをjsonの名前にしとくといいんじゃないですかね
 ```
 $ BiseNet
 python signate_metrics/make_submit.py --path_to_annotations res/images/1024 --output_name res/jsons/1024
+```
+とりあえず、iou出したいときは、
+```
+python signate_metrics/IOU.py --path_to_ground_truth res/jsons/gt.json --path_to_prediction res/jsons/1024.json
 ```
 
 ### マジの提出するやつ

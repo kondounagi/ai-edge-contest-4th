@@ -77,6 +77,7 @@ def parse_args():
     parse.add_argument('--num_class', type=int, default=13, choices=[5, 13, 20]) # あんまり引数増やさずに全部変えたいなあ
     parse.add_argument('--lr', type=float, default=5e-4)
     parse.add_argument('--weight_decay', type=float, default=5e-6)
+    parse.add_argument('--max_iter', type=int, default=300000)
 
     return parse.parse_args()
 
@@ -297,6 +298,7 @@ def main():
     cfg.respth = './logs/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
     cfg.lr_start = args.lr
     cfg.weight_decay = args.weight_decay
+    cfg.max_iter = args.max_iter
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
     train()

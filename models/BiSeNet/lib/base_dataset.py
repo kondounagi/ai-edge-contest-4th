@@ -27,11 +27,11 @@ as_same_class5 = np.array([-1, 0, 1, 4, 4, 4, 2, 4, 4, 4, 4,
                             4, 4, 4, 4, 4, 4, 4, 4, 4, 3])
 as_same_class13 = np.array([-1, 0, 1, 2, 3, 4, 5, 3, 4, 8, 9,
                             10, 11, 10, 9, 6, 2, 4, 7, 2, 12])
-as_same_class20 = np.array([-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-                            10, 11, 12, 13, 14, 15, 16, 17, 18, 19])
+as_same_class19 = np.array([-1, 0, 1, 2, 3, 4, 5, 3, 7, 8, 9,
+                            10, 11, 12, 13, 14, 15, 16, 17, 18, 6])
 as_same_class = {5 : as_same_class5,
                 13 : as_same_class13,
-                20 : as_same_class20}
+                19 : as_same_class19}
 
 class BaseDataset(Dataset):
     def __init__(self, root, resolution, num_class, trans_func=None, mode='train'):
