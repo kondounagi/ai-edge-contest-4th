@@ -5,7 +5,7 @@
 - 
 |          | Faster-SCNN |  BiSeNet  | FasterSeg |
 | ---      | ---         | ---       | ---       |
-|inferrence| 7.0 ms      | 10.8 ms   | 15.0 ms   | 
+|inferrence| 7.0 ms      | 10.8 ms   | 14.4 ms   | 
 |CPU + mask| 7.5 ms      | 47.5 ms   |   ?       | 
 
 - inferrenceの部分が重要？　CPUに送り返すのと色分けの計算は変えられるかもしれないし、吐き出すデータ自体が時間かかる形式なのかもしれない。
