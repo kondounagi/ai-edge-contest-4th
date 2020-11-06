@@ -294,7 +294,7 @@ def main():
     print('check2')
 
     # 仕方ないので、argsでcfgを上書き
-    cfg.respth = './res/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
+    cfg.respth = './logs/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
     cfg.lr_start = args.lr
     cfg.weight_decay = args.weight_decay
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)

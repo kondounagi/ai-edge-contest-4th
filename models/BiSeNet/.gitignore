@@ -108,13 +108,4 @@ data
 data/
 play.py
 preprocess_data.py
-res/
 adj.md
-datasets/cityscapes/**
-datasets/signate/**
-datasets/pretrain/**
-datasets/finetune/**
-datasets/test/**
-datasets/zips
-
-runs/*

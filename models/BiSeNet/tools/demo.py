@@ -34,8 +34,9 @@ def main():
 
     palette = get_palette(args.num_class)
     print(palette)
-    mean = torch.tensor([0.3744, 0.3841, 0.4029], dtype=torch.float32).view(-1, 1, 1)
-    std = torch.tensor([0.2778, 0.2752, 0.2596], dtype=torch.float32).view(-1, 1, 1)
+    # こいつの順番入れ替えてね. cv2なのでBGR
+    #mean = torch.tensor([0.3744, 0.3841, 0.4029], dtype=torch.float32).view(-1, 1, 1)
+    #std = torch.tensor([0.2778, 0.2752, 0.2596], dtype=torch.float32).view(-1, 1, 1)
 
     # define model
     net = model_factory[cfg.model_type](19)

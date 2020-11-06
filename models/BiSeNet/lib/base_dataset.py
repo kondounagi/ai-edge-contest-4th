@@ -15,32 +15,8 @@ from PIL import Image
 import lib.transform_cv2 as T
 from lib.sampler import RepeatedDistSampler
 from rich.progress import track
-""" ごめん、これデバッグがえぐくなりがちなので変えた。
-signate_pallette = [29, 183, 69, 166, 76,
-                    117, 150, 226, 155, 115,
-                    136, 181, 122,  64,  75,
-                    179,  93, 146,  82,  70]
-signate_pallette_index = np.array([255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255,   0, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,  13,
-       255, 255, 255, 255,   2, 18, 255, 255, 255, 255,  14,   4, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255,  16, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,   9, 255,
-         5, 255, 255, 255, 255,  12, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255,  10, 255, 255, 255, 255, 255, 255,
-       255, 255, 255,  17, 255, 255, 255,   6, 255, 255, 255, 255,   8,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255,   3, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255,  15, 255,  11,
-       255,   1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255,   7, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-       255, 255, 255, 255, 255, 255, 255, 255])
-"""
+
+
 _valid_class = [29, 64, 69, 70, 75, 76, 82, 93, 115, 117,
                 122, 136, 146, 150, 155, 166, 179, 181, 183, 226]
 pix2index = np.ones(256, dtype=int) * -1
@@ -58,8 +34,6 @@ as_same_class = {5 : as_same_class5,
                 20 : as_same_class20}
 
 class BaseDataset(Dataset):
-    '''
-    '''
     def __init__(self, root, resolution, num_class, trans_func=None, mode='train'):
         super(BaseDataset, self).__init__()
         assert mode in ('train', 'val', 'test')
@@ -68,24 +42,14 @@ class BaseDataset(Dataset):
         self.resolution = resolution
         self.as_same_class = as_same_class[num_class]
 
-        self.lb_map = None # こいつは使い方を大きく変えたので注意。
 
         # txtファイルからpairを吐かせるという仕様（激おこ）だったので、画像ディレクトリのパスを
         # 渡せば、imgとmaskを返してくれるようにした。
-        # pathとpth混合すな。
-        """
-        with open(ann_root, 'r') as fr:
-            pairs = fr.read().splitlines()
-        self.img_paths, self.lb_paths = [], []
-        for pair in pairs:
-            imgpth, lbpth = pair.split(',')
-            self.img_paths.append(osp.join(img_root, imgpth))
-            self.lb_paths.append(osp.join(img_root, lbpth))
-        """
-        self.img_paths, self.lb_paths = _get_paired_img_path(root)
+        # pathとpth混合すな        self.img_paths, self.lb_paths = _get_paired_img_path(root)
         #print(self.lb_paths)
 
-        assert len(self.img_paths) == len(self.lb_paths)
+        if self.mode != 'test':
+            assert len(self.img_paths) == len(self.lb_paths)
         self.len = len(self.img_paths)
         self.imgs = []
         self.lbs = []
@@ -99,21 +63,10 @@ class BaseDataset(Dataset):
             self.lbs.append(lb)
 
     def __getitem__(self, idx):
-        #img_path, lb_path = self.img_paths[idx], self.lb_paths[idx]
-        #img = cv2.imread(self.img_paths[idx]) 
-        #lb = np.asarray(Image.open(self.lb_paths[idx]).convert('L'))
         img = self.imgs[idx]
         lb = self.lbs[idx]
         img, lb = self._resize(img, lb)
-        """
-        if not self.lb_map is None:
-            lb = self.lb_map[lb] 
-        """
-        #convert from signate grayscale value to labels
-        #lb = signate_pallette_index[lb] 
-        #print('before map', np.unique(lb))
         lb = pix2index[lb]
-        #print('after map', np.unique(lb))
         lb = self.as_same_class[lb + 1] # クラス数に応じてまとめられる。lb+1は-1のignore idxを考慮して。
         im_lb = dict(im=img, lb=lb)
         if not self.trans_func is None:
