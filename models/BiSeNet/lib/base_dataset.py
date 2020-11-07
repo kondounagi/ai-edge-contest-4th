@@ -23,14 +23,15 @@ pix2index = np.ones(256, dtype=int) * -1
 pix2index[_valid_class] = range(20) # 上のsignate_pallette_indexと同じ配列。ただ、ignored classを−１にした。
 
 # クラスすうによってまとめるものが違うから。
+# signateの評価指標に使うものに0~3を割り当て
 as_same_class5 = np.array([-1, 0, 1, 4, 4, 4, 2, 4, 4, 4, 4,
                             4, 4, 4, 4, 4, 4, 4, 4, 4, 3])
-as_same_class13 = np.array([-1, 0, 1, 2, 3, 4, 5, 3, 4, 8, 9,
-                            10, 11, 10, 9, 6, 2, 4, 7, 2, 12])
-as_same_class19 = np.array([-1, 0, 1, 2, 3, 4, 5, 3, 7, 8, 9,
-                            10, 11, 12, 13, 14, 15, 16, 17, 18, 6])
+as_same_class14 = np.array([-1, 0, 1, 5, 6, 4, 2, 6, 7, 8, 9,
+                            10, 11, 12, 9, 13, 5, 7, 4, 5, 3])
+as_same_class19 = np.array([-1, 0, 1, 5, 6, 4, 2, 6, 7, 8, 9,
+                            10, 11, 12, 13, 14, 15, 16, 17, 18, 3])
 as_same_class = {5 : as_same_class5,
-                13 : as_same_class13,
+                14 : as_same_class14,
                 19 : as_same_class19}
 
 class BaseDataset(Dataset):
@@ -47,7 +48,7 @@ class BaseDataset(Dataset):
         # 渡せば、imgとmaskを返してくれるようにした。
         # pathとpth混合すな        self.img_paths, self.lb_paths = _get_paired_img_path(root)
         #print(self.lb_paths)
-
+        self.img_paths, self.lb_paths = _get_paired_img_path(root)
         if self.mode != 'test':
             assert len(self.img_paths) == len(self.lb_paths)
         self.len = len(self.img_paths)

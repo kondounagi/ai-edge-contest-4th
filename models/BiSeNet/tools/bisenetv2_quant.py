@@ -23,7 +23,7 @@ def parse_args():
   parse = argparse.ArgumentParser()
   parse.add_argument('--weight_path', type=str, default='../logs/res_2020_dd_hh_mm')
   parse.add_argument('--resolution', type=int, default=1024)
-  parse.add_argument('--num_class', type=int, default=13)
+  parse.add_argument('--num_class', type=int, default=14)
   parse.add_argument('--train_root', type=str, default='../datasets/finetune/train')
   parse.add_argument('--val_root', type=str, default='../datasets/finetune/val')
 

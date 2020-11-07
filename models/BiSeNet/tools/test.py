@@ -29,7 +29,7 @@ def parse_args():
     parse.add_argument('--exp', type=str, default='logs/res_2020_11_01_17_56', help='which experiment do you test ?') # res/res_mm_dd_..のやつを指定して
     parse.add_argument('--save_folder', type=str, default='res/images') # 画像を吐かせる先
     parse.add_argument('--model', dest='model', type=str, default='bisenetv2_light')
-    parse.add_argument('--num_class', type=int, default=13)
+    parse.add_argument('--num_class', type=int, default=14)
     parse.add_argument('--root', type=str, default='datasets/test')
     parse.add_argument('--mode', type=str, default='test', choices=['val', 'test'])
     parse.add_argument('--resolution', type=int, default=1024)

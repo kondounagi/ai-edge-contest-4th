@@ -74,7 +74,7 @@ def parse_args():
     parse.add_argument('--resolution', type=int, default=1024) # 横幅（長い方）のこと
     parse.add_argument('--dataset_root', type=str) # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--val_root', type=str, default='datasets/finetune/val') # fine tune, pre train でデータを簡単に分離できるようにしたい
-    parse.add_argument('--num_class', type=int, default=13, choices=[5, 13, 20]) # あんまり引数増やさずに全部変えたいなあ
+    parse.add_argument('--num_class', type=int, default=14, choices=[5, 14, 19]) # あんまり引数増やさずに全部変えたいなあ
     parse.add_argument('--lr', type=float, default=5e-4)
     parse.add_argument('--weight_decay', type=float, default=5e-6)
     parse.add_argument('--max_iter', type=int, default=300000)
@@ -238,7 +238,7 @@ def train():
         _ = [mter.update(lss.item()) for mter, lss in zip(loss_aux_meters, loss_aux)]
 
         ## print training log message
-        if (it + 1) % 1000 == 0: # 汚いけどご容赦　
+        if (it + 1) % 1000 == 1: # 汚いけどご容赦　
             lr = lr_schdr.get_lr()
             lr = sum(lr) / len(lr)
             print_log_msg(

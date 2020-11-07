@@ -72,7 +72,7 @@ class MscEvalV0(object):
         if dist.is_initialized():
             dist.all_reduce(hist, dist.ReduceOp.SUM)
         ious = hist.diag() / (hist.sum(dim=0) + hist.sum(dim=1) - hist.diag())
-        miou = ious.mean()
+        miou = ious[:4].mean() # signateのやつだけでiou吐かせる。
         return miou.item()
 
 
@@ -178,7 +178,7 @@ class MscEvalCrop(object):
         if self.distributed:
             dist.all_reduce(hist, dist.ReduceOp.SUM)
         ious = hist.diag() / (hist.sum(dim=0) + hist.sum(dim=1) - hist.diag())
-        miou = ious.mean()
+        miou = ious[:4].mean() # ここで、もう、signateの指標しか出さないことにした。
         return miou.item()
 
 
