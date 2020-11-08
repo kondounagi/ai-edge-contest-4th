@@ -8,6 +8,7 @@ import math
 import numpy as np
 import cv2
 import torch
+import torchvision.transforms as transforms
 
 
 
@@ -116,6 +117,21 @@ class ColorJitter(object):
         ]).clip(0, 255).astype(np.uint8)
         return table[im]
 
+
+
+class RandomNightBrightness(object):
+
+    def __init__(self, p=0.3, brightness=0.1):
+        self.p = p
+        self.brightness = brightness
+
+    def __call__(self, im_lb):
+        if np.random.random() < self.p:
+            im, lb = im_lb['im'], im_lb['lb']
+            im = transforms.functional.adj_brightness(im, self.brightness)
+            return dict(im=im, lb=lb)
+        else:
+            return im_lb
 
 
 

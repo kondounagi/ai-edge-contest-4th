@@ -113,16 +113,31 @@ def _get_paired_img_path(root):
 
 class TransformationTrain(object):
 
-    def __init__(self, scales, cropsize):
-        self.trans_func = T.Compose([
-            T.RandomResizedCrop(scales, cropsize),
-            T.RandomHorizontalFlip(),
-            T.ColorJitter(
-                brightness=0.4,
-                contrast=0.4,
-                saturation=0.4
-            ),
-        ])
+    def __init__(self, scales, cropsize, dataset='cityscapes'):
+        if dataset == 'signate':
+            self.trans_func = T.Compose([
+                T.RandomResizedCrop(scales, cropsize),
+                T.RandomHorizontalFlip(),
+                T.ColorJitter(
+                    brightness=0.4,
+                    contrast=0.4,
+                    saturation=0.4
+                ),
+            ])
+        elif dataset == 'cityscapes':
+            self.trans_func = T.Compose([
+                T.RandomResizedCrop(scales, cropsize),
+                T.RandomHorizontalFlip(),
+                T.ColorJitter(
+                    brightness=0.4,
+                    contrast=0.4,
+                    saturation=0.4
+                ),
+                T.RandomNightBrightness(), # ここで、めっちゃ輝度落とす
+            ])
+        else:
+            raise ValueError('cityscapes or signate dataset only')
+            
 
     def __call__(self, im_lb):
         im_lb = self.trans_func(im_lb)
