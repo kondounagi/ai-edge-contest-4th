@@ -81,8 +81,7 @@ def parse_args():
     parse.add_argument('--max_iter', type=int, default=300000)
     parse.add_argument('--dataset', type=str, default='cityscapes', choices=['cityscapes', 'signate', 'cityscapes_night'])
 
-    parse.add_argument('--model_type', type=int, default='bisenetv2')
-    parse.add_argument('')
+    parse.add_argument('--model_type', type=str, default='bisenetv2')
     return parse.parse_args()
 
 args = parse_args()
