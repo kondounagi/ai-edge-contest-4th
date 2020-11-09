@@ -12,7 +12,6 @@ import numpy as np
 import cv2
 
 from lib.models import model_factory
-from configs import cfg_factory
 from lib.base_dataset import as_same_class
 from lib.color_palette import get_palette
 from rich.progress import track
@@ -65,7 +64,6 @@ def main():
     dl, img_paths = get_test_loader(args.root, args.resolution)
     dl = DataLoader(dl, batch_size=1, shuffle=False)
 
-    cfg = cfg_factory['bisenetv2']
 
     palette = get_palette(args.num_class)
 

@@ -135,13 +135,14 @@ def main():
     lb_folder_val_fine = 'finetune/val/lb'
 
     # pretrainにまずデータを移す
-    #img2sig(img_folder_city, img_folder_pre, city_night_aware_transform)
-    #mask2sig(lb_folder_city, lb_folder_pre)
+    img2sig(img_folder_city, img_folder_pre, city_night_aware_transform)
+    mask2sig(lb_folder_city, lb_folder_pre)
 
     # cityscapes のデータの中から、人も信号も映ってないものを削除する。
     #rm_nohuman_imgs(img_folder_pre, lb_folder_pre)
 
     # finetuneにデータを移す。これはただ移動させるだけ。
+    """
     N = 2243 # signateのデータセットのすべての枚数。
     n_sample = 50 # これはvalに使う枚数。
     val_indices = np.random.choice(N, n_sample) # randomにするのはdatasetの内容が一様分布でないから。特に夜のimageの割合。
@@ -159,7 +160,7 @@ def main():
 
         shutil.copy(os.path.join(img_folder_sig, filename_img), dist_img)
         shutil.copy(os.path.join(lb_folder_sig, filename_lb), dist_lb)
-
+    """
 if __name__ == '__main__':
     main()
 

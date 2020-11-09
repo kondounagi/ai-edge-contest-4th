@@ -81,6 +81,8 @@ def parse_args():
     parse.add_argument('--max_iter', type=int, default=300000)
     parse.add_argument('--dataset', type=str, default='cityscapes', choices=['cityscapes', 'signate', 'cityscapes_night'])
 
+    parse.add_argument('--model_type', type=int, default='bisenetv2')
+    parse.add_argument('')
     return parse.parse_args()
 
 args = parse_args()
@@ -88,7 +90,7 @@ cfg = cfg_factory[args.model]
 
 
 def set_model():
-    net = model_factory[cfg.model_type](args.num_class)
+    net = model_factory[args.model_type](args.num_class)
     if not args.finetune_from is None:
         net.load_state_dict(torch.load(args.finetune_from))
     if cfg.use_sync_bn: net = set_syncbn(net)
@@ -300,7 +302,7 @@ def main():
     cfg.weight_decay = args.weight_decay
     cfg.max_iter = args.max_iter
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
-    setup_logger('{}-train'.format(cfg.model_type), cfg.respth)
+    setup_logger('{}-train'.format(args.model_type), cfg.respth)
     train()
     writer.flush()
 
