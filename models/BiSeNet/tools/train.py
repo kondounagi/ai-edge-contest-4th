@@ -30,6 +30,7 @@ from lib.logger import setup_logger, print_log_msg
 from lib.color_palette import get_palette
 
 from matplotlib import pyplot as plt
+import cv2
 from PIL import Image
 from rich.progress import track
 
@@ -78,6 +79,7 @@ def parse_args():
     parse.add_argument('--lr', type=float, default=5e-4)
     parse.add_argument('--weight_decay', type=float, default=5e-6)
     parse.add_argument('--max_iter', type=int, default=300000)
+    parse.add_argument('--dataset', type=str, default='cityscapes', choices=['cityscapes', 'signate', 'cityscapes_night'])
 
     return parse.parse_args()
 
@@ -182,7 +184,7 @@ def train():
     dl = get_data_loader(
             args.dataset_root, args.resolution, args.num_class,#　使うデータセットはargsから変えられるようにした。
             cfg.ims_per_gpu, cfg.scales, [args.resolution//8, args.resolution//4], # ここにcropsizeがあるので忘れなように。
-            cfg.max_iter, mode='train', distributed=is_dist)
+            cfg.max_iter, mode='train', distributed=is_dist, dataset=args.dataset)
 
     ## model
     net, criteria_pre, criteria_aux = set_model()
@@ -206,7 +208,6 @@ def train():
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
     print("len(dl)", len(dl))
     tmp = dl.__iter__()
-    #print(tmp.next())
     max_iter = len(dl)
     ## train loop
     for it, (im, lb) in track(enumerate(dl), description='training', total=max_iter):
@@ -217,8 +218,6 @@ def train():
 
         optim.zero_grad()
         logits, *logits_aux = net(im)
-        #print(logits.shape)
-        #print(len(logits_aux))
         loss_pre = criteria_pre(logits, lb)
         loss_aux = [crit(lgt, lb) for crit, lgt in zip(criteria_aux, logits_aux)]
         loss = loss_pre + sum(loss_aux)
@@ -238,7 +237,7 @@ def train():
         _ = [mter.update(lss.item()) for mter, lss in zip(loss_aux_meters, loss_aux)]
 
         ## print training log message
-        if (it + 1) % 1000 == 1: # 汚いけどご容赦　
+        if (it + 1) % 1000 == 0: # 汚いけどご容赦　
             lr = lr_schdr.get_lr()
             lr = sum(lr) / len(lr)
             print_log_msg(
@@ -263,11 +262,12 @@ def train():
                 non_transform = transforms.Compose([transforms.ToTensor()])
                 for it_eval, (im, lb) in enumerate(dl_eval):
                     out = net(im)[0].argmax(dim=1).squeeze().detach().cpu().numpy()
-                    #print('out.shape', out.shape)
                     pred = palette[out]
-                    #print('np.unique(pred[0])', np.unique(pred))
-                    _matplotlib_imshow(non_transform(Image.fromarray(np.uint8(pred))))
-                    writer.add_image('lb_{}_{}'.format(it, it_eval), non_transform(Image.fromarray(np.uint8(pred))))
+                    pred = np.uint8(pred)
+                    pred = cv2.cvtColor(pred, cv2.COLOR_BGR2RGB)
+                    pred = non_transform(pred)
+                    _matplotlib_imshow(pred) 
+                    writer.add_image('lb_{}_{}'.format(it, it_eval), pred)
 
 
     ## dump the final model and evaluate the result

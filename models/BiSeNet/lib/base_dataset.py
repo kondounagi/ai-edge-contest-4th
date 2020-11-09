@@ -35,10 +35,11 @@ as_same_class = {5 : as_same_class5,
                 19 : as_same_class19}
 
 class BaseDataset(Dataset):
-    def __init__(self, root, resolution, num_class, trans_func=None, mode='train'):
+    def __init__(self, root, resolution, num_class, trans_func=None, mode='train', dataset='cityscapes'):
         super(BaseDataset, self).__init__()
         assert mode in ('train', 'val', 'test')
         self.mode = mode
+        self.dataset = dataset # ここでcityscapesがデフォになってるけど、そのままだと、マジで今まで通りになるので、忘れても事故は起きない
         self.trans_func = trans_func
         self.resolution = resolution
         self.as_same_class = as_same_class[num_class]
@@ -80,11 +81,11 @@ class BaseDataset(Dataset):
         return self.len
 
     def _resize(self, img, lb):
-        # cityscapesの場合と、signateの場合でアスペクト比が違うのでそのための場合わけ。
-        if img.shape[1] / img.shape[0] == 2:
+        # cityscapesの場合と、signateの場合でアスペクト比が違うのでそのための場合わけ.
+        if self.dataset == 'cityscapes' or self.dataset == 'cityscapes_night':
             img = cv2.resize(img, (self.resolution, self.resolution // 2))
             lb = cv2.resize(lb, (self.resolution, self.resolution // 2), interpolation=cv2.INTER_NEAREST)
-        elif 1 < img.shape[1] / img.shape[0] < 2:
+        elif self.dataset == 'signate':
             img = cv2.resize(img, (self.resolution, self.resolution * 5 // 8))
             lb = cv2.resize(lb, (self.resolution, self.resolution *5 // 8), interpolation=cv2.INTER_NEAREST)
         else:
@@ -114,7 +115,7 @@ def _get_paired_img_path(root):
 class TransformationTrain(object):
 
     def __init__(self, scales, cropsize, dataset='cityscapes'):
-        if dataset == 'signate':
+        if dataset == 'signate' or dataset == 'cityscapes':
             self.trans_func = T.Compose([
                 T.RandomResizedCrop(scales, cropsize),
                 T.RandomHorizontalFlip(),
@@ -124,7 +125,7 @@ class TransformationTrain(object):
                     saturation=0.4
                 ),
             ])
-        elif dataset == 'cityscapes':
+        elif dataset == 'cityscapes_night':
             self.trans_func = T.Compose([
                 T.RandomResizedCrop(scales, cropsize),
                 T.RandomHorizontalFlip(),

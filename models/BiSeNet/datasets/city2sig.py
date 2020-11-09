@@ -9,6 +9,8 @@ from torchvision import transforms
 
 from tqdm import tqdm
 
+np.random.seed(123)
+
 # グレースケールのcolor pallette
 
 city2sig_pallette = np.array([0, 70, 0, 0, 0,
@@ -20,10 +22,15 @@ city2sig_pallette = np.array([0, 70, 0, 0, 0,
                               0, 82, 117, 150, 0, 0])
 
 # transformsたち。逆変換が大事なやつ。
-
+# PILのだけど、開くから保存まで一貫してるのでOK
+# 順番は(mean, std)
 city_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.2869, 0.3252, 0.2839], [0.1756, 0.1805, 0.1772])
+])
+city_night_aware_transform = transforms.Compose([ # randomに意図的にbrightnessをクソ小さくするので、それを考慮した仮想的なmeanとstd
+    transforms.ToTensor(),
+    transforms.Normalize([0.2094, 0.2373, 0.2072], [0.1472, 0.1513, 0.1485])
 ])
 sig_train_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -33,6 +40,7 @@ sig_test_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.3563, 0.3689, 0.3901], [0.2835, 0.2796, 0.2597])
 ])
+
 inv_sig_test_transform = transforms.Compose([
     transforms.Normalize([-1.2568, -1.3194, -1.5021], [3.5273, 3.5765, 3.8506])
 ])
@@ -50,13 +58,13 @@ def mask2sig(src_folder, dist_folder):
                 new_mask.save(os.path.join(dist_folder, mask_path))
 
 # src_folder以下にある画像のstd, meanをsignateの評価環境のものと同じにする。
-def img2sig(src_folder, dist_folder):
+def img2sig(src_folder, dist_folder, src_transform):
     for root, _, img_folder in os.walk(src_folder):
         for img_path in tqdm(img_folder):
             src = os.path.join(root, img_path)
             img = Image.open(src)
 
-            img = city_transform(img)
+            img = src_transform(img)
             img = inv_sig_test_transform(img)
 
             img = np.transpose(img, (1, 2, 0)) * 255
@@ -109,16 +117,16 @@ def rm_nohuman_imgs(img_folder, lb_folder):
 
 
 def main():
-    # sources
+    # sources # こっちは基本変えなくていい。
     img_folder_city = 'cityscapes/leftImg8bit'
     lb_folder_city = 'cityscapes/gtFine'
 
     img_folder_sig = 'signate/seg_train_images'
     lb_folder_sig = 'signate/seg_train_annotations'
 
-    # distinations
-    img_folder_pre = 'pretrain/train/img'
-    lb_folder_pre = 'pretrain/train/lb'
+    # distinations 変えるならこっちですかね
+    img_folder_pre = 'pretrain_night/train/img'
+    lb_folder_pre = 'pretrain_night/train/lb'
 
     img_folder_fine = 'finetune/train/img'
     lb_folder_fine = 'finetune/train/lb'
@@ -127,31 +135,30 @@ def main():
     lb_folder_val_fine = 'finetune/val/lb'
 
     # pretrainにまずデータを移す
-    img2sig(img_folder_city, img_folder_pre)
-    mask2sig(lb_folder_city, lb_folder_pre)
+    #img2sig(img_folder_city, img_folder_pre, city_night_aware_transform)
+    #mask2sig(lb_folder_city, lb_folder_pre)
 
     # cityscapes のデータの中から、人も信号も映ってないものを削除する。
-    rm_nohuman_imgs(img_folder_pre, lb_folder_pre)
+    #rm_nohuman_imgs(img_folder_pre, lb_folder_pre)
 
     # finetuneにデータを移す。これはただ移動させるだけ。
-    N = 2192 # 2192枚。つまり最後はtrain_2191.png
-    img_paths_sig = os.listdir(img_folder_sig)
-    lb_paths_sig = os.listdir(lb_folder_sig)
-    cnt = 0
-    for filename in tqdm(img_paths_sig):
-        if cnt < N:
-            shutil.move(os.path.join(img_folder_sig, filename), img_folder_fine)
-        else:
-            shutil.move(os.path.join(img_folder_sig, filename), img_folder_val_fine)
-        cnt += 1
+    N = 2243 # signateのデータセットのすべての枚数。
+    n_sample = 50 # これはvalに使う枚数。
+    val_indices = np.random.choice(N, n_sample) # randomにするのはdatasetの内容が一様分布でないから。特に夜のimageの割合。
+    for i in range(N):
+        if i in val_indices:
+            dist_img = img_folder_val_fine
+            dist_lb = lb_folder_val_fine
+        else :
+            dist_img = img_folder_fine
+            dist_lb = lb_folder_fine
+        i_str = str(i).zfill(4)
 
-    cnt = 0
-    for filename in tqdm(lb_paths_sig):
-        if cnt < N:
-            shutil.move(os.path.join(lb_folder_sig, filename), lb_folder_fine)
-        else:
-            shutil.move(os.path.join(lb_folder_sig, filename), lb_folder_val_fine)
-        cnt += 1
+        filename_img = 'train_' + i_str + '.jpg'
+        filename_lb = 'train_' + i_str + '.png'
+
+        shutil.copy(os.path.join(img_folder_sig, filename_img), dist_img)
+        shutil.copy(os.path.join(lb_folder_sig, filename_lb), dist_lb)
 
 if __name__ == '__main__':
     main()

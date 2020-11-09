@@ -128,7 +128,7 @@ class RandomNightBrightness(object):
     def __call__(self, im_lb):
         if np.random.random() < self.p:
             im, lb = im_lb['im'], im_lb['lb']
-            im = transforms.functional.adj_brightness(im, self.brightness)
+            im = im * self.brightness # 本当はtensor に変えた後にやりたいんだけど、random jitterもこのままやってるしね...
             return dict(im=im, lb=lb)
         else:
             return im_lb

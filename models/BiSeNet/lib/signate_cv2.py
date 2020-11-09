@@ -17,23 +17,17 @@ from lib.base_dataset import BaseDataset, TransformationTrain, TransformationVal
 
 
 class Signate(BaseDataset):
-    def __init__(self, root, resolution, num_class, trans_func=None, mode='train'):
-        super(Signate, self).__init__(root, resolution, num_class, trans_func, mode)
-        # self.n_cats = 20   # なんかここは変えなきゃな気がする。というかこいつ使われてないんだけど何？
+    def __init__(self, root, resolution, num_class, trans_func=None, mode='train', dataset='cityscapes'):
+        super(Signate, self).__init__(root, resolution, num_class, trans_func, mode, dataset=dataset)
         self.lb_ignore = -1
-        # なくていい気がするから、一回むし。というか、base_datasetとやってることが被りがちなのでよくない？
-        """
-        self.lb_map = np.arange(256).astype(np.uint8)
-        for el in labels_info:
-            self.lb_map[el['id']] = el['trainId'] # 今回はel[i] = i
-        """
+        self.dataset = dataset
         self.to_tensor = T.ToTensor(
             mean=(0.4029, 0.3841, 0.3744), # signateに合わせた。cityscape も事前にこれに合わせるのでスイッチはいらない
             std=(0.2596, 0.2752, 0.2778),
         )
  
 
-def get_data_loader(root, resolution, num_class, ims_per_gpu, scales, cropsize, max_iter=None, mode='train', distributed=False):
+def get_data_loader(root, resolution, num_class, ims_per_gpu, scales, cropsize, max_iter=None, mode='train', distributed=False, dataset='cityscapes'):
     print("in get_data_loader")
     if mode == 'train':
         trans_func = TransformationTrain(scales, cropsize)
@@ -46,7 +40,7 @@ def get_data_loader(root, resolution, num_class, ims_per_gpu, scales, cropsize, 
         shuffle = False
         drop_last = False
 
-    ds = Signate(root, resolution, num_class, trans_func=trans_func, mode=mode)
+    ds = Signate(root, resolution, num_class, trans_func=trans_func, mode=mode, dataset=dataset)
 
     if distributed:
         assert dist.is_available(), "dist should be initialzed"
