@@ -5,6 +5,7 @@ from PIL import Image, ImageOps, ImageFilter
 import numpy as np
 import torch
 from torchvision import transforms
+import argparse
 
 
 from tqdm import tqdm
@@ -28,6 +29,7 @@ city_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.2869, 0.3252, 0.2839], [0.1756, 0.1805, 0.1772])
 ])
+# これもいらん。これの逆変換がいる
 city_night_aware_transform = transforms.Compose([ # randomに意図的にbrightnessをクソ小さくするので、それを考慮した仮想的なmeanとstd
     transforms.ToTensor(),
     transforms.Normalize([0.2094, 0.2373, 0.2072], [0.1472, 0.1513, 0.1485])
@@ -40,10 +42,31 @@ sig_test_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.3563, 0.3689, 0.3901], [0.2835, 0.2796, 0.2597])
 ])
+# こいつ間違ってる。これの逆変換を用意しなくちゃいけない
+city_sig_mix_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize([0.4117, 0.4309, 0.4600], [0.2756, 0.2635, 0.2277])
+])
 
+# inverse transforms
 inv_sig_test_transform = transforms.Compose([
     transforms.Normalize([-1.2568, -1.3194, -1.5021], [3.5273, 3.5765, 3.8506])
 ])
+inv_city_mix_transform = transforms.Compose([
+    transforms.Normalize([-1.4937, -1.6347, -2.0200], [3.6278, 3.7936, 4.3909])
+])
+inv_city_night_aware_transform = transforms.Compose([
+    transforms.Normalize([-1.4225, -1.5684, -1.3952], [6.7934, 6.6093, 6.7340])
+])
+
+def argparse():
+    parse = argparse.ArgumentParser()
+    parse.add_argument('--finetune', action='store_true', default=False)
+    parse.add_argument('--pretrain_night', action='store_true', default=False) # 人為的に明るさを時々落とすやつ。
+    parse.add_argument('--pretrain_mix', action='store_true', default=False) # signateのよる画像と、cityscapesの人を含む画像
+    parse.add_argument('--pretrain', action='store_true', default=False) # 普通のやつ。人を除いただけ
+
+    return parse.parse_args()
 
 # src_folder以下にあるcityscapes仕様のマスクをすべて、signate仕様のマスクに変換し、dist_folder以下に保存する。
 def mask2sig(src_folder, dist_folder):
@@ -58,14 +81,14 @@ def mask2sig(src_folder, dist_folder):
                 new_mask.save(os.path.join(dist_folder, mask_path))
 
 # src_folder以下にある画像のstd, meanをsignateの評価環境のものと同じにする。
-def img2sig(src_folder, dist_folder, src_transform):
+def img2sig(src_folder, dist_folder, src_transform=city_transform, trg_inv_transform=inv_sig_test_transform):
     for root, _, img_folder in os.walk(src_folder):
         for img_path in tqdm(img_folder):
             src = os.path.join(root, img_path)
             img = Image.open(src)
 
             img = src_transform(img)
-            img = inv_sig_test_transform(img)
+            img = trg_inv_transform(img)
 
             img = np.transpose(img, (1, 2, 0)) * 255
             
@@ -116,6 +139,7 @@ def rm_nohuman_imgs(img_folder, lb_folder):
     print('removed ', cnt, '　images\n')
 
 
+# main関数ないは自分の用途に合わせていじってください。　
 def main():
     # sources # こっちは基本変えなくていい。
     img_folder_city = 'cityscapes/leftImg8bit'
@@ -125,8 +149,14 @@ def main():
     lb_folder_sig = 'signate/seg_train_annotations'
 
     # distinations 変えるならこっちですかね
-    img_folder_pre = 'pretrain_night/train/img'
-    lb_folder_pre = 'pretrain_night/train/lb'
+    img_folder_pretrain = 'pretrain/train/img'
+    lb_folder_pretrain = 'pretrain/train/lb'
+
+    img_folder_night = 'pretrain_night/train/img'
+    lb_folder_night = 'pretrain_night/train/lb'
+
+    img_folder_mix = 'pretrain_mix/train/img'
+    lb_folder_mix = 'pretrain_mix/train/lb'
 
     img_folder_fine = 'finetune/train/img'
     lb_folder_fine = 'finetune/train/lb'
@@ -134,33 +164,47 @@ def main():
     img_folder_val_fine = 'finetune/val/img'
     lb_folder_val_fine = 'finetune/val/lb'
 
-    # pretrainにまずデータを移す
-    img2sig(img_folder_city, img_folder_pre, city_night_aware_transform)
-    mask2sig(lb_folder_city, lb_folder_pre)
+    args = argparse()
 
-    # cityscapes のデータの中から、人も信号も映ってないものを削除する。
-    #rm_nohuman_imgs(img_folder_pre, lb_folder_pre)
+    if args.pretrain:
+        img2sig(img_folder_city, img_folder_pretrain) 
+        mask2sig(lb_folder_city, lb_folder_pretrain)
+        # cityscapes のデータの中から、人も信号も映ってないものを削除する。
+        rm_nohuman_imgs(img_folder_pretrain, lb_folder_pretrain)
+
+    if args.pretrain_night:
+        img2sig(img_folder_city, img_folder_night, trg_inv_transform=inv_city_night_aware_transform) 
+        mask2sig(lb_folder_city, lb_folder_night)
+        # cityscapes のデータの中から、人も信号も映ってないものを削除する。
+        rm_nohuman_imgs(img_folder_night, lb_folder_night)
+
+    if args.pretrain_mix:
+        img2sig(img_folder_city, img_folder_mix, trg_inv_transform=inv_city_mix_transform) 
+        mask2sig(lb_folder_city, lb_folder_mix)
+        # cityscapes のデータの中から、人も信号も映ってないものを削除する。
+        rm_nohuman_imgs(img_folder_mix, lb_folder_mix)
+
 
     # finetuneにデータを移す。これはただ移動させるだけ。
-    """
-    N = 2243 # signateのデータセットのすべての枚数。
-    n_sample = 50 # これはvalに使う枚数。
-    val_indices = np.random.choice(N, n_sample) # randomにするのはdatasetの内容が一様分布でないから。特に夜のimageの割合。
-    for i in range(N):
-        if i in val_indices:
-            dist_img = img_folder_val_fine
-            dist_lb = lb_folder_val_fine
-        else :
-            dist_img = img_folder_fine
-            dist_lb = lb_folder_fine
-        i_str = str(i).zfill(4)
+    if args.finetune:
+        N = 2243 # signateのデータセットのすべての枚数。
+        n_sample = 50 # これはvalに使う枚数。
+        val_indices = np.random.choice(N, n_sample) # randomにするのはdatasetの内容が一様分布でないから。特に夜のimageの割合。
+        for i in range(N):
+            if i in val_indices:
+                dist_img = img_folder_val_fine
+                dist_lb = lb_folder_val_fine
+            else :
+                dist_img = img_folder_fine
+                dist_lb = lb_folder_fine
+            i_str = str(i).zfill(4)
 
-        filename_img = 'train_' + i_str + '.jpg'
-        filename_lb = 'train_' + i_str + '.png'
+            filename_img = 'train_' + i_str + '.jpg'
+            filename_lb = 'train_' + i_str + '.png'
 
-        shutil.copy(os.path.join(img_folder_sig, filename_img), dist_img)
-        shutil.copy(os.path.join(lb_folder_sig, filename_lb), dist_lb)
-    """
+            shutil.copy(os.path.join(img_folder_sig, filename_img), dist_img)
+            shutil.copy(os.path.join(lb_folder_sig, filename_lb), dist_lb)
+            
 if __name__ == '__main__':
     main()
 

@@ -29,10 +29,10 @@
         |-test/
         |-city2sig.py
 ```
-この時、cityscapesとsignateには加工してないデータを入れてください。
+この時、cityscapesとsignateには加工してないデータを入れてください。argumentで引いたデータセットが作られます。
 ```
 $BiseNet/datasets
-python city2sig.py
+python city2sig.py --finetune --pretrain_mix --pretrain
 ```
 これは、cityscapes のデータをsignate 仕様に変えてくれます。データセットを変えるときは、rootだけ変えば良くなります。mean とstdも自動で変更します。マスクのラベルも変更してくれます。くそ時間かかるので、tmuxとかでやったほうがいいよ。
 
@@ -62,7 +62,7 @@ CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 too
 ```
 夜の画像がないことを意識したtraining
 ```
-CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train.py --model bisenetv2 --num_class 14 --dataset_root datasets/pretrain_night/train --dataset signate --lr 1e-2 --weight_decay 1e-4 
+CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch --nproc_per_node=1 tools/train.py --model bisenetv2 --num_class 14 --dataset_root datasets/pretrain_night/train --dataset cityscapes_night --lr 1e-2 --weight_decay 1e-4 
 ```
 ## Finetune
 --finetune_fromのところを変えてください。経験的にはlrは爆発しない限りは高ければ高いほうがいいです。

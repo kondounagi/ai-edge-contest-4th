@@ -82,10 +82,11 @@ class BaseDataset(Dataset):
 
     def _resize(self, img, lb):
         # cityscapesの場合と、signateの場合でアスペクト比が違うのでそのための場合わけ.
-        if self.dataset == 'cityscapes' or self.dataset == 'cityscapes_night':
+        # わざわざ、データセットで指定しないのは、同じ実験でもevalのときはsignateを使うから 
+        if img.shape[1] / img.shape[0] == 2:
             img = cv2.resize(img, (self.resolution, self.resolution // 2))
             lb = cv2.resize(lb, (self.resolution, self.resolution // 2), interpolation=cv2.INTER_NEAREST)
-        elif self.dataset == 'signate':
+        elif 1 < img.shape[1] / img.shape[0] < 2:
             img = cv2.resize(img, (self.resolution, self.resolution * 5 // 8))
             lb = cv2.resize(lb, (self.resolution, self.resolution *5 // 8), interpolation=cv2.INTER_NEAREST)
         else:
