@@ -112,7 +112,7 @@ venv.bak/
 datasets
 
 # pretraind model
-weights/
+weights**/
 
 # result
 test_result/

@@ -1,14 +1,16 @@
 import os
 import sys
 import shutil
-from PIL import Image, ImageOps, ImageFilter
+import json
+import argparse
+
 import numpy as np
 import torch
 from torchvision import transforms
-import argparse
-
+from PIL import Image, ImageOps, ImageFilter
 
 from tqdm import tqdm
+from rich.progress import track
 
 np.random.seed(123)
 
@@ -29,7 +31,6 @@ city_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.2869, 0.3252, 0.2839], [0.1756, 0.1805, 0.1772])
 ])
-# これもいらん。これの逆変換がいる
 city_night_aware_transform = transforms.Compose([ # randomに意図的にbrightnessをクソ小さくするので、それを考慮した仮想的なmeanとstd
     transforms.ToTensor(),
     transforms.Normalize([0.2094, 0.2373, 0.2072], [0.1472, 0.1513, 0.1485])
@@ -59,7 +60,7 @@ inv_city_night_aware_transform = transforms.Compose([
     transforms.Normalize([-1.4225, -1.5684, -1.3952], [6.7934, 6.6093, 6.7340])
 ])
 
-def argparse():
+def parse_args():
     parse = argparse.ArgumentParser()
     parse.add_argument('--finetune', action='store_true', default=False)
     parse.add_argument('--pretrain_night', action='store_true', default=False) # 人為的に明るさを時々落とすやつ。
@@ -164,7 +165,7 @@ def main():
     img_folder_val_fine = 'finetune/val/img'
     lb_folder_val_fine = 'finetune/val/lb'
 
-    args = argparse()
+    args = parse_args()
 
     if args.pretrain:
         img2sig(img_folder_city, img_folder_pretrain) 
@@ -173,7 +174,7 @@ def main():
         rm_nohuman_imgs(img_folder_pretrain, lb_folder_pretrain)
 
     if args.pretrain_night:
-        img2sig(img_folder_city, img_folder_night, trg_inv_transform=inv_city_night_aware_transform) 
+        img2sig(img_folder_city, img_folder_night, src_transform=city_night_aware_transform) 
         mask2sig(lb_folder_city, lb_folder_night)
         # cityscapes のデータの中から、人も信号も映ってないものを削除する。
         rm_nohuman_imgs(img_folder_night, lb_folder_night)
@@ -184,6 +185,18 @@ def main():
         # cityscapes のデータの中から、人も信号も映ってないものを削除する。
         rm_nohuman_imgs(img_folder_mix, lb_folder_mix)
 
+        # signateのdatasetの中から、夜の画像だけを持ってくる
+        jsons_paths = os.listdir(lb_folder_sig)
+        for json_filename in track(jsons_paths):
+            if json_filename.endswith('json'):
+                json_path = os.path.join(lb_folder_sig, json_filename)
+                with open(json_path) as json_open:
+                    json_data = json.load(json_open)
+                if json_data['attributes']['timeofday'] == 'night':
+                    img_path = os.path.join(img_folder_sig, json_filename.replace('.json', '.jpg'))
+                    lb_path = os.path.join(lb_folder_sig, json_filename.replace('.json', '.png'))
+                    shutil.copy(img_path, img_folder_mix)
+                    shutil.copy(lb_path, lb_folder_mix)
 
     # finetuneにデータを移す。これはただ移動させるだけ。
     if args.finetune:
