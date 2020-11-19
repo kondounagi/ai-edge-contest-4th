@@ -14,9 +14,9 @@ from tabulate import tabulate
 
 import torch
 import torch.nn as nn
-#import torch.d# プロセス食いつぶす原因はこいつっぽいdistributed as dist
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from lib.models import model_factory
 from lib.models.bisenetv2 import SegmentHead
@@ -52,8 +52,6 @@ torch.cuda.manual_seed(123)
 np.random.seed(123)
 random.seed(123)
 torch.backends.cudnn.deterministic = True
-#  torch.backends.cudnn.benchmark = True
-#  torch.multiprocessing.set_sharing_strategy('file_system')
 
 def _matplotlib_imshow(img, one_channel=False):
     if one_channel:
@@ -75,11 +73,12 @@ def parse_args():
     parse.add_argument('--dataset_root', type=str) # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--val_root', type=str, default='datasets/finetune/val') # fine tune, pre train でデータを簡単に分離できるようにしたい
     parse.add_argument('--num_class', type=int, default=14, choices=[5, 14, 19]) # あんまり引数増やさずに全部変えたいなあ
-    parse.add_argument('--lr', type=float, default=5e-4)
-    parse.add_argument('--weight_decay', type=float, default=5e-6)
+    parse.add_argument('--lr', type=float, default=5e-2)
+    parse.add_argument('--weight_decay', type=float, default=5e-4)
     parse.add_argument('--epochs', type=int, default=1000)
     parse.add_argument('--dataset', type=str, default='cityscapes', choices=['cityscapes', 'signate', 'cityscapes_night'])
     parse.add_argument('--debug', action='store_true', default=False)
+    parse.add_argument('--batch-size', type=int, default=32)
 
     parse.add_argument('--model_type', type=str, default='bisenetv2')
     return parse.parse_args()
@@ -92,10 +91,6 @@ def set_model():
     net = model_factory[args.model_type](args.num_class)
     if not args.finetune_from is None:
         net.load_state_dict(torch.load(args.finetune_from))
-    #if cfg.use_sync_bn: net = set_syncbn(net)
-        
-    # finetune this layer(n_class=19)
-    #net.head = SegmentHead(128, 1024, args.num_class)
     
     net.cuda()
     net.train()
@@ -103,14 +98,6 @@ def set_model():
     criteria_aux = [OhemCELoss(0.7) for _ in range(cfg.num_aux_heads)]
     return net, criteria_pre, criteria_aux
 
-"""
-def set_syncbn(net):
-    if has_apex:
-        net = parallel.convert_syncbn_model(net)
-    else:
-        net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
-    return net
-"""
 
 def set_optimizer(model):
     if hasattr(model, 'get_params'):
@@ -140,19 +127,6 @@ def set_optimizer(model):
     )
     return optim
 
-"""
-def set_model_dist(net):
-    return net
-    if has_apex:
-        net = parallel.DistributedDataParallel(net, delay_allreduce=True)
-    else:
-        local_rank = dist.get_rank()
-        net = nn.parallel.DistributedDataParallel(
-            net,
-            device_ids=[local_rank, ],
-            output_device=local_rank)
-    return net
-"""
 
 def set_meters():
     time_meter = TimeMeter(cfg.max_iter)
@@ -195,8 +169,6 @@ def train():
         opt_level = 'O1' if cfg.use_fp16 else 'O0'
         net, optim = amp.initialize(net, optim, opt_level=opt_level)
 
-    ## ddp training
-    #net = set_model_dist(net)
     ## meters
     time_meter, loss_meter, loss_pre_meter, loss_aux_meters = set_meters()
 
@@ -204,6 +176,9 @@ def train():
     lr_schdr = WarmupPolyLrScheduler(optim, power=0.9,
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
+
+    # >>> ここがplateau optimizer
+    #lr_schdr = ReduceLROnPlateau(optim, mode='min', patience=100)
     print("len(dl)", len(dl))
     miou_best = 0
     n_iter = len(dl)
@@ -278,37 +253,17 @@ def train():
                     _matplotlib_imshow(pred) 
                     writer.add_image('val_{}_{}'.format(epoch, it_eval), pred)
 
-
-    ## dump the final model and evaluate the result
-    #ave_pth = osp.join(cfg.respth, 'model_final.pth')
-    #logger.info('\nsave models to {}'.format(save_pth))
-    #state = net.module.state_dict()
-    #if dist.get_rank() == 0: torch.save(state, save_pth)
-
-    #logger.info('\nevaluating the final model')
-    #torch.cuda.empty_cache()
-    #heads, mious = eval_model(net, 2, args.val_root, args.resolution, args.num_class)
-    #logger.info(tabulate([mious, ], headers=heads, tablefmt='orgtbl'))
     logger.info('\nfinished training')
 
     return
 
 
 def main():
-    """
-    torch.cuda.set_device(args.local_rank)
-    dist.init_process_group(
-        backend='nccl',
-        init_method='tcp://127.0.0.1:{}'.format(args.port),
-        world_size=torch.cuda.device_count(),
-        rank=args.local_rank
-    )
-    """
-
     # 仕方ないので、argsでcfgを上書き
     cfg.respth = './logs/res_{}'.format(time.strftime('%Y_%m_%d_%H_%M'))
     cfg.lr_start = args.lr
     cfg.weight_decay = args.weight_decay
+    cfg.ims_per_gpu = args.batch_size
     if not osp.exists(cfg.respth): os.makedirs(cfg.respth)
     setup_logger('{}-train'.format(args.model_type), cfg.respth)
     train()
