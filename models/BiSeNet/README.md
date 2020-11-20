@@ -55,16 +55,15 @@ tmux内でactivateしっぱなしがおすすめだよ。その場合はもち�
 - datasetの準備以外のスクリプトはBisenet/で動かしてね
 
 ## Pretrain
-lrを変えてみたほうがよさそう。たぶん、なるべく高いほうがいい。
 ```
 $ BiseNet/
-CUDA_VISIBLE_DEVICES=4 python tools/train.py --model bisenetv2 --num_class 14 --dataset_root datasets/pretrain_mix/train --dataset cityscapes --lr 5e-2 --batch-size 32
+CUDA_VISIBLE_DEVICES=4 python tools/train.py --dataset_root datasets/pretrain_mix/train --lr 5e-3 
 ```
 ## Finetune
---finetune_fromのところを変えてください。経験的にはlrは爆発しない限りは高ければ高いほうがいいです。
+--finetune_fromのところを変えてください。
 ```
 $ BiseNet/
-CUDA_VISIBLE_DEVICES=4 python tools/train.py --model bisenetv2 --num_class 14 --dataset_root datasets/finetune/train --dataset signate --lr 1e-2 --finetune_from ./logs/res_2020_mm_yy_hh_mm/model_best.pth
+CUDA_VISIBLE_DEVICES=4 python tools/train.py --dataset_root datasets/finetune/train --dataset signate --lr 1e-2 --finetune_from ./logs/res_2020_mm_yy_hh_mm/model_best.pth
 ```
 
 
@@ -74,7 +73,7 @@ CUDA_VISIBLE_DEVICES=4 python tools/train.py --model bisenetv2 --num_class 14 --
 test.pyで学習済みモデルにはかしてみる。1024のとこを変えてくだしあ
 ```
 $ BiseNet
-CUDA_VISIBLE_DEVICES=0 python tools/test.py --save_folder res/images/1024 --root datasets/finetune/val/img 
+CUDA_VISIBLE_DEVICES=0 python tools/test.py --save_folder res/images/1024 --root datasets/finetune/val/img --exp logs/res_2020_mm_dd_hh_mm/
 ```
 ### jsonの作り方
 

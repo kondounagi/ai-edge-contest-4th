@@ -176,9 +176,8 @@ def train():
     lr_schdr = WarmupPolyLrScheduler(optim, power=0.9,
         max_iter=cfg.max_iter, warmup_iter=cfg.warmup_iters,
         warmup_ratio=0.1, warmup='exp', last_epoch=-1,)
-
     # >>> ここがplateau optimizer
-    #lr_schdr = ReduceLROnPlateau(optim, mode='min', patience=100)
+    #lr_schdr = ReduceLROnPlateau(optim, mode='max', patience=10, verbose=True)
     print("len(dl)", len(dl))
     miou_best = 0
     n_iter = len(dl)

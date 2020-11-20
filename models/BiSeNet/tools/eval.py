@@ -73,7 +73,7 @@ class MscEvalV0(object):
             dist.all_reduce(hist, dist.ReduceOp.SUM)
         ious = hist.diag() / (hist.sum(dim=0) + hist.sum(dim=1) - hist.diag())
         miou = ious[:4].mean() # signateのやつだけでiou吐かせる。
-        return miou.item()
+        return miou.item(), ious[:4]
 
 
 
@@ -196,10 +196,11 @@ def eval_model(net, ims_per_gpu, root, resolution, num_class):
     logger = logging.getLogger()
 
     single_scale = MscEvalV0((1., ), False)
-    mIOU = single_scale(net, dl, num_class)
+    mIOU, sig_ious = single_scale(net, dl, num_class)
     heads.append('single_scale')
     mious.append(mIOU)
     logger.info('single mIOU is: %s\n', mIOU)
+    logger.info('signate metrices', sig_ious)
 
     single_crop = MscEvalCrop(
         cropsize=1024,
@@ -214,7 +215,7 @@ def eval_model(net, ims_per_gpu, root, resolution, num_class):
     logger.info('single scale crop mIOU is: %s\n', mIOU)
 
     ms_flip = MscEvalV0((0.5, 0.75, 1, 1.25, 1.5, 1.75), True)
-    mIOU = ms_flip(net, dl, num_class)
+    mIOU, _ = ms_flip(net, dl, num_class)
     heads.append('ms_flip')
     mious.append(mIOU)
     logger.info('ms flip mIOU is: %s\n', mIOU)
