@@ -1,7 +1,10 @@
 # ai-edge-contest-4th
 
 ## Requirements
-* [Vitis-AI 2019.2](https://www.xilinx.com/html_docs/vitis_ai/1_0/index.html)
+### Vitis-AI
+モデルの量子化及びコンパイルには __Vitis-AI 1.2.1__ を利用する．
+本レポジトリにクローンされている．
+* ~~ [Vitis-AI 2019.2](https://www.xilinx.com/html_docs/vitis_ai/1_0/index.html) ~~
 
 ## [アイデア賞用レポート](https://docs.google.com/presentation/d/1eMQ7aspS-UqENqdJxmf0atEmAJCLnW1w9lUrTRBmPeg/edit?usp=sharing)
 みんなで編集しよう！

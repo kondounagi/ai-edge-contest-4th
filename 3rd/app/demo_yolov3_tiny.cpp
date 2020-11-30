@@ -1,4 +1,4 @@
-/*
+li*
  * Copyright 2020 Team ArchLab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+// NOTE: configurable_dpu_task.hpp も存在する https://github.com/Xilinx/Vitis-AI/tree/v1.2.1/Vitis-AI-Library/dpu_task/include/vitis/ai
 #include <xilinx/ai/dpu_task.hpp>
 #include <xilinx/ai/nnpp/yolov3.hpp>
 #include <time.h>
@@ -159,6 +160,11 @@ int main_thread(int s_num, int e_num, int tid) {
     // DPUアクセスのためのハンドラを取りに行っているだけ？
     auto task = [] {
         std::lock_guard<std::mutex> lock(mtx_);         // Important!
+	// KERNEL_NAMEを参照して.soファイルを探しているので適当な名前ではいけない
+	// カスタムモデルのときは.soファイルはどうやってつくるの？
+	// モデルをコンパイルしてできたdpu_tinyyolov3.elfみたいなのをいじればよさそう
+	// 出典:Vitis-AI1.0マニュアル 66p DPU Shared Library
+	// https://www.xilinx.com/support/documentation/sw_manuals/vitis_ai/1_0/ug1414-vitis-ai.pdf
         return xilinx::ai::DpuTask::create(KERNEL_NAME);
     }();
     task->setMeanScaleBGR({0.0f, 0.0f, 0.0f}, {0.00390625f, 0.00390625f, 0.00390625f}); // ここも変えなきゃいけない気がする。
@@ -219,6 +225,8 @@ int main_thread(int s_num, int e_num, int tid) {
 
             // NOTE: Xilinx AI LibraryのSemantic Segmentationモデルを探して，
             // その後処理用関数を呼ぶ形にすれば，実装量をだいぶ減らせる可能性あり
+	    // vitis-aiにあるコードを参考にしてカスタムモデルで書くことは不可能ではなさそう
+	    // 内部でdpu_configを読んでいるが，これはyolo_v3_configみたいな上にあるやつをパースしているだけなのでdpu固有のなにかを気にする必要はない
             const auto results = xilinx::ai::yolov3_post_process(
                 input_tensor, output_tensor, dpu_config, ORIG_WIDTH, ORIG_HEIGHT);
 
