@@ -52,7 +52,6 @@ def get_test_loader(root, resolution): # 不覚。imとlbを同時に吐く仕�
     for img_path in img_paths:
         img_path = os.path.join(root, img_path)
         img = cv2.imread(img_path)
-        img = img[:, :, ::-1]
         img = cv2.resize(img, (resolution, resolution * 5 // 8)) # ごめん、ハードコード。appの方でもresizeはcv2が使われているので、ここでもcv2　cv2 は短いほうが後だよ
         img = np.uint8(img)
         img = transform(img) # ここで変換

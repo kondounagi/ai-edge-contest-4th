@@ -1,0 +1,13 @@
+six
+tensorflow_gpu
+tensorrt
+pycuda
+loguru
+tqdm
+numpy
+opencv_contrib_python
+opencv-python
+matplotlib
+Pillow
+scikit_learn
+PyYAML
