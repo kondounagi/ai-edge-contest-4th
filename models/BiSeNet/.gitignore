@@ -85,6 +85,11 @@ celerybeat-schedule
 .venv
 env/
 venv/
+p11/
+bin/
+etc/
+include/
+lib64/
 ENV/
 env.bak/
 venv.bak/

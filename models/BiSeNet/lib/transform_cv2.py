@@ -145,7 +145,7 @@ class ToTensor(object):
 
     def __call__(self, im_lb):
         im, lb = im_lb['im'], im_lb['lb']
-        im = im[:, :, ::-1].transpose(2, 0, 1).astype(np.float32) # to rgb order
+        im = im.transpose(2, 0, 1).astype(np.float32) # to rgb order は？　
         im = torch.from_numpy(im).div_(255)
         dtype, device = im.dtype, im.device
         mean = torch.as_tensor(self.mean, dtype=dtype, device=device)[:, None, None]

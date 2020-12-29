@@ -72,6 +72,7 @@ class MscEvalV0(object):
         if dist.is_initialized():
             dist.all_reduce(hist, dist.ReduceOp.SUM)
         ious = hist.diag() / (hist.sum(dim=0) + hist.sum(dim=1) - hist.diag())
+        print('ious', ious)
         miou = ious[:4].mean() # signateのやつだけでiou吐かせる。
         return miou.item()
 

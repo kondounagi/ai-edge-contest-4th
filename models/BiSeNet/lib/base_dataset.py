@@ -16,6 +16,9 @@ import lib.transform_cv2 as T
 from lib.sampler import RepeatedDistSampler
 from rich.progress import track
 
+debug = False
+
+
 
 _valid_class = [29, 64, 69, 70, 75, 76, 82, 93, 115, 117,
                 122, 136, 146, 150, 155, 166, 179, 181, 183, 226]
@@ -55,21 +58,29 @@ class BaseDataset(Dataset):
         self.len = len(self.img_paths)
         self.imgs = []
         self.lbs = []
-        self._load_on_memory()
+        if not debug:
+            self._load_on_memory()
 
     def _load_on_memory(self):
         for i in track(range(self.len), description='loading images'):
             img = cv2.imread(self.img_paths[i])
             lb = np.asarray(Image.open(self.lb_paths[i]).convert('L'))
+
+            img, lb = self._resize(img, lb)
+            lb = pix2index[lb]
+            lb = self.as_same_class[lb + 1] # クラス数に応じてまとめられる。lb+1は-1のignore idxを考慮して。
+
             self.imgs.append(img)
             self.lbs.append(lb)
 
     def __getitem__(self, idx):
-        img = self.imgs[idx]
-        lb = self.lbs[idx]
-        img, lb = self._resize(img, lb)
-        lb = pix2index[lb]
-        lb = self.as_same_class[lb + 1] # クラス数に応じてまとめられる。lb+1は-1のignore idxを考慮して。
+        if debug:
+            img_path, lb_path = self.img_paths[idx], self.lb_paths[idx]
+            img = cv2.imread(self.img_paths[idx]) 
+            lb = np.asarray(Image.open(self.lb_paths[idx]).convert('L'))
+        else:
+            img = self.imgs[idx]
+            lb = self.lbs[idx]
         im_lb = dict(im=img, lb=lb)
         if not self.trans_func is None:
             im_lb = self.trans_func(im_lb)
