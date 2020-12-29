@@ -1,7 +1,6 @@
 easydict==1.9
 matplotlib==3.0.0
 numpy==1.16.1
-# need onnx==1.6.0 to use opset_version=11
 onnx==1.5.0
 opencv-python==3.4.4.19
 Pillow==6.2.0
@@ -13,3 +12,4 @@ thop==0.0.31.post2001170342
 torch==1.1.0
 torchvision==0.3.0
 tqdm==4.25.0
+--extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100
